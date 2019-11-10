@@ -48,7 +48,7 @@ else
 endif
 
 
-CFLAGS += -fPIC -pedantic -g -D_DEFAULT_SOURCE -mssse3 -pthread -O3 -DNDEBUG
+CFLAGS += -pedantic -D_DEFAULT_SOURCE -mssse3 -pthread
 #CFLAGS += -DBUILD_EASYLOGGINGPP -DELPP_NO_DEFAULT_LOG_FILE -DELPP_THREAD_SAFE -DHWM_OVER_XU -DRS2_USE_V4L2_BACKEND -DUNICODE
 
 #todo: remove rdynamic?
