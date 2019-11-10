@@ -86,7 +86,7 @@ $(BIN_DIR)/$(APP): $(OBJECTS) | $(BIN_DIR)
 $(BIN_DIR)/%.o: | $(BIN_DIR)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-$(DEPENDS): $(SOURCES) | $(BIN_DIR)
+$(DEPENDS): $(SOURCES) $(HEADERS) | $(BIN_DIR)
 	$(CC) $(CFLAGS) -MM $(SOURCES) | sed -e 's!^!$(BIN_DIR)/!' >$@
 
 -include $(DEPENDS)

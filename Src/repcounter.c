@@ -3,9 +3,12 @@
 #include <librealsense2/h/rs_option.h>
 #include <librealsense2/h/rs_pipeline.h>
 #include <librealsense2/rs.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+#include "rs-depth.h"
 
 void print_error(rs2_error* e)
 {
@@ -15,17 +18,18 @@ void print_error(rs2_error* e)
 
 // Get the first connected device
 // The returned object should be released with rs2_delete_device(...)
-rs2_device* getFirstDevice()
+bool getFirstDevice(rs2_context **ctx, rs2_device **dev)
 {
+	bool ret = false;
 	rs2_error* e = NULL;
-	rs2_device* ret = NULL;
 
-	rs2_context* ctx = rs2_create_context(RS2_API_VERSION, &e);
+	(*ctx) = rs2_create_context(RS2_API_VERSION, &e);
 	if (e) {
+		(*ctx) = NULL;
 		goto FAIL;
 	}
 
-	rs2_device_list* device_list = rs2_query_devices(ctx, &e);
+	rs2_device_list* device_list = rs2_query_devices(*ctx, &e);
 	if (e) {
 		goto FAIL;
 	}
@@ -39,11 +43,14 @@ rs2_device* getFirstDevice()
 		goto FAIL;
 	}
 
-	ret = rs2_create_device(device_list, 0, &e);
+	(*dev) = rs2_create_device(device_list, 0, &e);
 	if (e) {
+		(*dev) = NULL;
 		goto FAIL;
 	}
 
+	rs2_delete_device_list(device_list);
+	return true;
 FAIL:
 	if (e) {
 		print_error(e);
@@ -52,7 +59,7 @@ FAIL:
 		rs2_delete_device_list(device_list);
 	}
 	if (ctx) {
-		rs2_delete_context(ctx);
+		rs2_delete_context(*ctx);
 	}
 	return ret;
 }
@@ -60,7 +67,12 @@ FAIL:
 
 int main()
 {
-	rs2_device* dev = getFirstDevice();
+	rs2_device *dev;
+	rs2_context *ctx;
+	bool success = getFirstDevice(&ctx, &dev);
+	if (!success) {
+		goto FAIL;
+	}
 
 	rs2_error* e = 0;
 	const char *name = rs2_get_device_info(dev, RS2_CAMERA_INFO_NAME, &e);
@@ -69,9 +81,16 @@ int main()
 	}
 	printf("Using device \"%s\"\n", name);
 
+	printStream(ctx, dev);
+
 FAIL:
 	if (e) {
 		print_error(e);
 	}
-	rs2_delete_device(dev);
+	if (dev) {
+		rs2_delete_device(dev);
+	}
+	if (ctx) {
+		rs2_delete_context(ctx);
+	}
 }
