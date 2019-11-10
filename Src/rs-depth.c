@@ -10,9 +10,11 @@
 #include <librealsense2/h/rs_pipeline.h>
 #include <librealsense2/h/rs_option.h>
 #include <librealsense2/h/rs_frame.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <signal.h>
 
 // License: Apache 2.0. See LICENSE file in root directory.
 // Copyright(c) 2017 Intel Corporation. All Rights Reserved.
@@ -96,9 +98,17 @@ float get_depth_unit_value(const rs2_device* const dev)
 	return depth_scale;
 }
 
+static volatile bool plsStop;
+void intHandler(int dummy) {
+	plsStop = true;
+	signal(SIGINT, SIG_DFL);
+}
 
 void printStream(rs2_pipeline* pipeline, rs2_device* dev)
 {
+	plsStop = false;
+	signal(SIGINT, intHandler);
+
 	rs2_error* e = 0;
 
 	/* Determine depth value corresponding to one meter */
@@ -159,7 +169,7 @@ void printStream(rs2_pipeline* pipeline, rs2_device* dev)
 	char* buffer = calloc(display_size, sizeof(char));
 	char* out = NULL;
 
-	while (1) {
+	while (!plsStop) {
 		// This call waits until a new composite_frame is available
 		// composite_frame holds a set of frames. It is used to prevent frame drops
 		// The returned object should be released with rs2_release_frame(...)
@@ -230,7 +240,5 @@ void printStream(rs2_pipeline* pipeline, rs2_device* dev)
 	free(buffer);
 	rs2_delete_pipeline_profile(pipeline_profile);
 	rs2_delete_stream_profiles_list(stream_profile_list);
-	rs2_delete_stream_profile((rs2_stream_profile*) stream_profile);
 	rs2_delete_config(config);
-	rs2_delete_pipeline(pipeline);
 }
