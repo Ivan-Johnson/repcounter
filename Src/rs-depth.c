@@ -236,7 +236,7 @@ int main()
     free(buffer);
     rs2_delete_pipeline_profile(pipeline_profile);
     rs2_delete_stream_profiles_list(stream_profile_list);
-    rs2_delete_stream_profile(stream_profile);
+    rs2_delete_stream_profile((rs2_stream_profile*) stream_profile);
     rs2_delete_config(config);
     rs2_delete_pipeline(pipeline);
     rs2_delete_device(dev);

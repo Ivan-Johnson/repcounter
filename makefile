@@ -22,7 +22,7 @@ CFLAGS += -Wfatal-errors -std=c99
 #more lenient. This value can be modified here, or make can be run as follows:
 #
 #make <target> STRICT=<value>
-STRICT ?= 100
+STRICT ?= 2
 
 ifeq ($(shell test $(STRICT) -le 2; echo $$?),0)
 	CFLAGS += -Werror
@@ -48,7 +48,7 @@ else
 endif
 
 
-CFLAGS += -fPIC -pedantic -g -D_BSD_SOURCE   -mssse3 -pthread -O3 -DNDEBUG
+CFLAGS += -fPIC -pedantic -g -D_DEFAULT_SOURCE -mssse3 -pthread -O3 -DNDEBUG
 #CFLAGS += -DBUILD_EASYLOGGINGPP -DELPP_NO_DEFAULT_LOG_FILE -DELPP_THREAD_SAFE -DHWM_OVER_XU -DRS2_USE_V4L2_BACKEND -DUNICODE
 
 #todo: remove rdynamic?
