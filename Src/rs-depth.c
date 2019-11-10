@@ -97,17 +97,12 @@ float get_depth_unit_value(const rs2_device* const dev)
 }
 
 
-void printStream(rs2_context* ctx, rs2_device* dev)
+void printStream(rs2_pipeline* pipeline, rs2_device* dev)
 {
 	rs2_error* e = 0;
 
 	/* Determine depth value corresponding to one meter */
 	uint16_t one_meter = (uint16_t)(1.0f / get_depth_unit_value(dev));
-
-	// Create a pipeline to configure, start and stop camera streaming
-	// The returned object should be released with rs2_delete_pipeline(...)
-	rs2_pipeline* pipeline =  rs2_create_pipeline(ctx, &e);
-	check_error(e);
 
 	// Create a config instance, used to specify hardware configuration
 	// The retunred object should be released with rs2_delete_config(...)

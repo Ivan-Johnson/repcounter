@@ -19,19 +19,23 @@ void print_error(rs2_error* e)
 
 // Get the first connected device
 // The returned object should be released with rs2_delete_device(...)
-bool getFirstDevice(rs2_context **ctx, rs2_device **dev)
+bool getFirstDevice(rs2_pipeline **pipeline, rs2_device **dev)
 {
 	bool ret = false;
 	rs2_error* e = NULL;
 
-	(*ctx) = rs2_create_context(RS2_API_VERSION, &e);
+	rs2_device_list* device_list = NULL;
+	rs2_context* ctx = NULL;
+
+	ctx = rs2_create_context(RS2_API_VERSION, &e);
 	if (e) {
-		(*ctx) = NULL;
+		ctx = NULL;
 		goto FAIL;
 	}
 
-	rs2_device_list* device_list = rs2_query_devices(*ctx, &e);
+	device_list = rs2_query_devices(ctx, &e);
 	if (e) {
+		device_list = NULL;
 		goto FAIL;
 	}
 
@@ -50,17 +54,30 @@ bool getFirstDevice(rs2_context **ctx, rs2_device **dev)
 		goto FAIL;
 	}
 
-	rs2_delete_device_list(device_list);
-	return true;
+	(*pipeline) = rs2_create_pipeline(ctx, &e);
+	if (e) {
+		(*pipeline) = NULL;
+		goto FAIL;
+	}
+
+	ret = true;
+	goto SUCCESS;
 FAIL:
 	if (e) {
 		print_error(e);
 	}
+	if (*dev) {
+		rs2_delete_device(*dev);
+	}
+	if (*pipeline) {
+		rs2_delete_pipeline(*pipeline);
+	}
+SUCCESS:
 	if (device_list) {
 		rs2_delete_device_list(device_list);
 	}
 	if (ctx) {
-		rs2_delete_context(*ctx);
+		rs2_delete_context(ctx);
 	}
 	return ret;
 }
@@ -102,8 +119,8 @@ int main(int argc, char **argv)
 	bool success;
 	struct args args;
 	rs2_device *dev = NULL;
-	rs2_context *ctx = NULL;
-	rs2_error* e = 0;
+	rs2_pipeline *pipeline = NULL;
+	rs2_error* e = NULL;
 
 
 	success = parseArgs(argc, argv, &args);
@@ -111,7 +128,7 @@ int main(int argc, char **argv)
 		goto FAIL;
 	}
 
-	success = getFirstDevice(&ctx, &dev);
+	success = getFirstDevice(&pipeline, &dev);
 	if (!success) {
 		goto FAIL;
 	}
@@ -122,7 +139,7 @@ int main(int argc, char **argv)
 	}
 	printf("Using device \"%s\"\n", name);
 
-	printStream(ctx, dev); // no exit?
+	printStream(pipeline, dev); // no exit?
 	ret = EXIT_SUCCESS;
 
 FAIL:
@@ -132,8 +149,8 @@ FAIL:
 	if (dev) {
 		rs2_delete_device(dev);
 	}
-	if (ctx) {
-		rs2_delete_context(ctx);
+	if (pipeline) {
+		rs2_delete_pipeline(pipeline);
 	}
 	return ret;
 }
