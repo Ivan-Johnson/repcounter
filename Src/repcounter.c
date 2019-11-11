@@ -11,6 +11,17 @@
 
 #include "rs-depth.h"
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                                     These parameters are reconfigurable                                        //
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#define STREAM          RS2_STREAM_DEPTH  // rs2_stream is a types of data provided by RealSense device           //
+#define FORMAT          RS2_FORMAT_Z16    // rs2_format is identifies how binary data is encoded within a frame   //
+#define WIDTH           640               // Defines the number of columns for each frame or zero for auto resolve//
+#define HEIGHT          0                 // Defines the number of lines for each frame or zero for auto resolve  //
+#define FPS             30                // Defines the rate of frames per second                                //
+#define STREAM_INDEX    0                 // Defines the stream index, used for multiple streams of the same type //
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 void print_error(rs2_error* e)
 {
 	printf("rs_error was raised when calling %s(%s):\n", rs2_get_failed_function(e), rs2_get_failed_args(e));
@@ -19,13 +30,14 @@ void print_error(rs2_error* e)
 
 // Get the first connected device
 // The returned object should be released with rs2_delete_device(...)
-bool getFirstDevice(rs2_pipeline **pipeline, rs2_device **dev)
+bool getFirstDevice(rs2_pipeline **pipeline, const rs2_stream_profile** stream_profile, rs2_device **dev)
 {
 	bool ret = false;
 	rs2_error* e = NULL;
 
 	rs2_device_list* device_list = NULL;
 	rs2_context* ctx = NULL;
+	rs2_config* config = NULL;
 
 	ctx = rs2_create_context(RS2_API_VERSION, &e);
 	if (e) {
@@ -59,6 +71,39 @@ bool getFirstDevice(rs2_pipeline **pipeline, rs2_device **dev)
 		(*pipeline) = NULL;
 		goto FAIL;
 	}
+
+	config = rs2_create_config(&e);
+	if (e) {
+		config = NULL;
+		goto FAIL;
+	}
+
+	// Request a specific configuration
+	rs2_config_enable_stream(config, STREAM, STREAM_INDEX, WIDTH, HEIGHT, FORMAT, FPS, &e);
+	if (e) {
+		goto FAIL;
+	}
+
+	// Start the pipeline streaming
+	// The retunred object should be released with rs2_delete_pipeline_profile(...)
+	rs2_pipeline_profile* pipeline_profile = rs2_pipeline_start_with_config(*pipeline, config, &e);
+	if (e) {
+		printf("The connected device doesn't support depth streaming!\n");
+		goto FAIL;
+	}
+
+	rs2_stream_profile_list* stream_profile_list = rs2_pipeline_profile_get_streams(pipeline_profile, &e);
+	if (e) {
+		printf("Failed to create stream profile list!\n");
+		exit(EXIT_FAILURE);
+	}
+
+	*stream_profile = rs2_get_stream_profile(stream_profile_list, 0, &e);
+	if (e) {
+		printf("Failed to create stream profile!\n");
+		exit(EXIT_FAILURE);
+	}
+
 
 	ret = true;
 	goto SUCCESS;
@@ -119,6 +164,7 @@ int main(int argc, char **argv)
 	bool success;
 	struct args args;
 	rs2_device *dev = NULL;
+	const rs2_stream_profile* stream_profile = NULL;
 	rs2_pipeline *pipeline = NULL;
 	rs2_error* e = NULL;
 
@@ -128,7 +174,7 @@ int main(int argc, char **argv)
 		goto FAIL;
 	}
 
-	success = getFirstDevice(&pipeline, &dev);
+	success = getFirstDevice(&pipeline, &stream_profile, &dev);
 	if (!success) {
 		goto FAIL;
 	}
@@ -139,7 +185,7 @@ int main(int argc, char **argv)
 	}
 	printf("Using device \"%s\"\n", name);
 
-	printStream(pipeline, dev); // no exit?
+	printStream(pipeline, stream_profile, dev); // no exit?
 	ret = EXIT_SUCCESS;
 
 FAIL:
