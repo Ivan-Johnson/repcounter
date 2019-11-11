@@ -143,6 +143,7 @@ FAIL:
 		rs2_delete_pipeline(*pipeline);
 	}
 SUCCESS:
+	//TODO: delete the rest of the structs?
 	if (device_list) {
 		rs2_delete_device_list(device_list);
 	}
