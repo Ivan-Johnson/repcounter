@@ -83,24 +83,37 @@ bool getFirstDevice(struct args args, rs2_pipeline **pipeline, const rs2_stream_
 		goto FAIL;
 	}
 
+	//TODO: handle all these errors
+	rs2_pipeline_profile* pipeline_profile;
+	if(args.write) {
+		rs2_config_enable_record_to_file(config, args.file, &e);
+		if (e) {
+			goto FAIL;
+		}
+		pipeline_profile = rs2_pipeline_start_with_config(*pipeline, config, &e);
+		if (e) {
+			printf("The connected device doesn't support depth streaming!\n");
+			goto FAIL;
+		}
+	} else {
+		rs2_config_enable_device_from_file(config, args.file, &e);
+		if (e) {
+			goto FAIL;
+		}
 
-	assert(args.write);
-	rs2_config_enable_record_to_file(config, args.file, &e);
-	if (e) {
-		goto FAIL;
+		rs2_delete_device(*dev);
+
+		pipeline_profile = rs2_pipeline_start_with_config(*pipeline, config, &e);
+		if (e) {
+			goto FAIL;
+		}
+
+		(*dev) = rs2_pipeline_profile_get_device(pipeline_profile, &e);
+		if (e) {
+			goto FAIL;
+		}
 	}
-
-	// Request a specific configuration
-	rs2_config_enable_stream(config, STREAM, STREAM_INDEX, WIDTH, HEIGHT, FORMAT, FPS, &e);
 	if (e) {
-		goto FAIL;
-	}
-
-	// Start the pipeline streaming
-	// The retunred object should be released with rs2_delete_pipeline_profile(...)
-	rs2_pipeline_profile* pipeline_profile = rs2_pipeline_start_with_config(*pipeline, config, &e);
-	if (e) {
-		printf("The connected device doesn't support depth streaming!\n");
 		goto FAIL;
 	}
 
