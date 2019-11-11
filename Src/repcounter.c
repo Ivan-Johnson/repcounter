@@ -28,9 +28,14 @@ void print_error(rs2_error* e)
 	printf("    %s\n", rs2_get_error_message(e));
 }
 
+struct args {
+	bool write;
+	char *file;
+};
+
 // Get the first connected device
 // The returned object should be released with rs2_delete_device(...)
-bool getFirstDevice(rs2_pipeline **pipeline, const rs2_stream_profile** stream_profile, rs2_device **dev)
+bool getFirstDevice(struct args args, rs2_pipeline **pipeline, const rs2_stream_profile** stream_profile, rs2_device **dev)
 {
 	bool ret = false;
 	rs2_error* e = NULL;
@@ -75,6 +80,13 @@ bool getFirstDevice(rs2_pipeline **pipeline, const rs2_stream_profile** stream_p
 	config = rs2_create_config(&e);
 	if (e) {
 		config = NULL;
+		goto FAIL;
+	}
+
+
+	assert(args.write);
+	rs2_config_enable_record_to_file(config, args.file, &e);
+	if (e) {
 		goto FAIL;
 	}
 
@@ -127,11 +139,6 @@ SUCCESS:
 	return ret;
 }
 
-struct args {
-	bool write;
-	char *file;
-};
-
 bool parseArgs(int argc, char **argv, struct args *out)
 {
 	if (argc != 3) {
@@ -174,7 +181,7 @@ int main(int argc, char **argv)
 		goto FAIL;
 	}
 
-	success = getFirstDevice(&pipeline, &stream_profile, &dev);
+	success = getFirstDevice(args, &pipeline, &stream_profile, &dev);
 	if (!success) {
 		goto FAIL;
 	}
