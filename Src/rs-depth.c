@@ -94,7 +94,7 @@ void intHandler(int dummy) {
 	signal(SIGINT, SIG_DFL);
 }
 
-void printStream(rs2_pipeline* pipeline, const rs2_stream_profile* stream_profile, rs2_device* dev)
+void printStream(struct objs objs)
 {
 	plsStop = false;
 	signal(SIGINT, intHandler);
@@ -102,14 +102,14 @@ void printStream(rs2_pipeline* pipeline, const rs2_stream_profile* stream_profil
 	rs2_error* e = 0;
 
 	/* Determine depth value corresponding to one meter */
-	uint16_t one_meter = (uint16_t)(1.0f / get_depth_unit_value(dev));
+	uint16_t one_meter = (uint16_t)(1.0f / get_depth_unit_value(objs.dev));
 
 	rs2_stream stream;
 	rs2_format format;
 	int index;
 	int unique_id;
 	int framerate;
-	rs2_get_stream_profile_data(stream_profile, &stream, &format, &index, &unique_id, &framerate, &e);
+	rs2_get_stream_profile_data(objs.stream_profile, &stream, &format, &index, &unique_id, &framerate, &e);
 	if (e) {
 		printf("Failed to get stream profile data!\n");
 		exit(EXIT_FAILURE);
@@ -117,7 +117,7 @@ void printStream(rs2_pipeline* pipeline, const rs2_stream_profile* stream_profil
 
 	int width;
 	int height;
-	rs2_get_video_stream_resolution(stream_profile, &width, &height, &e);
+	rs2_get_video_stream_resolution(objs.stream_profile, &width, &height, &e);
 	if (e) {
 		printf("Failed to get video stream resolution data!\n");
 		exit(EXIT_FAILURE);
@@ -134,7 +134,7 @@ void printStream(rs2_pipeline* pipeline, const rs2_stream_profile* stream_profil
 		// This call waits until a new composite_frame is available
 		// composite_frame holds a set of frames. It is used to prevent frame drops
 		// The returned object should be released with rs2_release_frame(...)
-		rs2_frame* frames = rs2_pipeline_wait_for_frames(pipeline, RS2_DEFAULT_TIMEOUT, &e);
+		rs2_frame* frames = rs2_pipeline_wait_for_frames(objs.pipeline, RS2_DEFAULT_TIMEOUT, &e);
 		check_error(e);
 
 		// Returns the number of frames embedded within the composite frame

@@ -10,6 +10,7 @@
 #include <string.h>
 
 #include "rs-depth.h"
+#include "objs.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                                     These parameters are reconfigurable                                        //
@@ -33,31 +34,25 @@ struct args {
 	char *file;
 };
 
-// Get the first connected device
-// The returned object should be released with rs2_delete_device(...)
-bool getFirstDevice(struct args args, rs2_pipeline **pipeline, const rs2_stream_profile** stream_profile, rs2_device **dev)
+bool getFirstDevice(struct args args, struct objs *objs)
 {
 	bool ret = false;
-	rs2_error* e = NULL;
+	*objs = objs_default_value();
 
-	rs2_device_list* device_list = NULL;
-	rs2_context* ctx = NULL;
-	rs2_config* config = NULL;
-
-	ctx = rs2_create_context(RS2_API_VERSION, &e);
-	if (e) {
-		ctx = NULL;
+	objs->ctx = rs2_create_context(RS2_API_VERSION, &objs->err);
+	if (objs->err) {
+		objs->ctx = NULL;
 		goto FAIL;
 	}
 
-	device_list = rs2_query_devices(ctx, &e);
-	if (e) {
-		device_list = NULL;
+	objs->device_list = rs2_query_devices(objs->ctx, &objs->err);
+	if (objs->err) {
+		objs->device_list = NULL;
 		goto FAIL;
 	}
 
-	int dev_count = rs2_get_device_count(device_list, &e);
-	if (e) {
+	int dev_count = rs2_get_device_count(objs->device_list, &objs->err);
+	if (objs->err) {
 		goto FAIL;
 	}
 	if (dev_count == 0) {
@@ -65,71 +60,70 @@ bool getFirstDevice(struct args args, rs2_pipeline **pipeline, const rs2_stream_
 		goto FAIL;
 	}
 
-	(*dev) = rs2_create_device(device_list, 0, &e);
-	if (e) {
-		(*dev) = NULL;
+	objs->dev = rs2_create_device(objs->device_list, 0, &objs->err);
+	if (objs->err) {
+		objs->dev = NULL;
 		goto FAIL;
 	}
 
-	(*pipeline) = rs2_create_pipeline(ctx, &e);
-	if (e) {
-		(*pipeline) = NULL;
+	objs->pipeline = rs2_create_pipeline(objs->ctx, &objs->err);
+	if (objs->err) {
+		objs->pipeline = NULL;
 		goto FAIL;
 	}
 
-	config = rs2_create_config(&e);
-	if (e) {
-		config = NULL;
+	objs->config = rs2_create_config(&objs->err);
+	if (objs->err) {
+		objs->config = NULL;
 		goto FAIL;
 	}
 
 	// Request a specific configuration
-	rs2_config_enable_stream(config, STREAM, STREAM_INDEX, WIDTH, HEIGHT, FORMAT, FPS, &e);
-	if (e) {
+	rs2_config_enable_stream(objs->config, STREAM, STREAM_INDEX, WIDTH, HEIGHT, FORMAT, FPS, &objs->err);
+	if (objs->err) {
 		goto FAIL;
 	}
 
 	//TODO: handle all these errors
-	rs2_pipeline_profile* pipeline_profile;
 	if(args.write) {
-		rs2_config_enable_record_to_file(config, args.file, &e);
-		if (e) {
+		rs2_config_enable_record_to_file(objs->config, args.file, &objs->err);
+		if (objs->err) {
 			goto FAIL;
 		}
-		pipeline_profile = rs2_pipeline_start_with_config(*pipeline, config, &e);
-		if (e) {
+		objs->pipeline_profile = rs2_pipeline_start_with_config(objs->pipeline, objs->config, &objs->err);
+		if (objs->err) {
 			goto FAIL;
 		}
 	} else {
-		rs2_config_enable_device_from_file(config, args.file, &e);
-		if (e) {
+		rs2_config_enable_device_from_file(objs->config, args.file, &objs->err);
+		if (objs->err) {
 			goto FAIL;
 		}
 
-		rs2_delete_device(*dev);
+		rs2_delete_device(objs->dev);
 
-		pipeline_profile = rs2_pipeline_start_with_config(*pipeline, config, &e);
-		if (e) {
+		objs->pipeline_profile = rs2_pipeline_start_with_config(objs->pipeline, objs->config, &objs->err);
+		if (objs->err) {
 			goto FAIL;
 		}
 
-		(*dev) = rs2_pipeline_profile_get_device(pipeline_profile, &e);
-		if (e) {
+		objs->dev = rs2_pipeline_profile_get_device(objs->pipeline_profile, &objs->err);
+		if (objs->err) {
 			goto FAIL;
 		}
 	}
-	if (e) {
+	if (objs->err) {
 		goto FAIL;
 	}
 
-	rs2_stream_profile_list* stream_profile_list = rs2_pipeline_profile_get_streams(pipeline_profile, &e);
-	if (e) {
+	objs->stream_profile_list = rs2_pipeline_profile_get_streams(objs->pipeline_profile, &objs->err);
+	if (objs->err) {
 		printf("Failed to create stream profile list!\n");
 		exit(EXIT_FAILURE);
 	}
 
-	*stream_profile = rs2_get_stream_profile(stream_profile_list, 0, &e);
-	if (e) {
+	objs->stream_profile = rs2_get_stream_profile(objs->stream_profile_list, 0, &objs->err);
+	if (objs->err) {
 		printf("Failed to create stream profile!\n");
 		exit(EXIT_FAILURE);
 	}
@@ -138,23 +132,11 @@ bool getFirstDevice(struct args args, rs2_pipeline **pipeline, const rs2_stream_
 	ret = true;
 	goto SUCCESS;
 FAIL:
-	if (e) {
-		print_error(e);
+	if (objs->err) {
+		print_error(objs->err);
 	}
-	if (*dev) {
-		rs2_delete_device(*dev);
-	}
-	if (*pipeline) {
-		rs2_delete_pipeline(*pipeline);
-	}
+	objs_delete(*objs);
 SUCCESS:
-	//TODO: delete the rest of the structs?
-	if (device_list) {
-		//rs2_delete_device_list(device_list);
-	}
-	if (ctx) {
-		//rs2_delete_context(ctx);
-	}
 	return ret;
 }
 
@@ -189,9 +171,7 @@ int main(int argc, char **argv)
 	int ret = EXIT_FAILURE;
 	bool success;
 	struct args args;
-	rs2_device *dev = NULL;
-	const rs2_stream_profile* stream_profile = NULL;
-	rs2_pipeline *pipeline = NULL;
+	struct objs objs;
 	rs2_error* e = NULL;
 
 
@@ -200,33 +180,24 @@ int main(int argc, char **argv)
 		goto FAIL;
 	}
 
-	success = getFirstDevice(args, &pipeline, &stream_profile, &dev);
+	success = getFirstDevice(args, &objs);
 	if (!success) {
 		goto FAIL;
 	}
 
-	const char *name = rs2_get_device_info(dev, RS2_CAMERA_INFO_NAME, &e);
+	const char *name = rs2_get_device_info(objs.dev, RS2_CAMERA_INFO_NAME, &e);
 	if (e) {
 		goto FAIL;
 	}
 	printf("Using device \"%s\"\n", name);
 
-	printStream(pipeline, stream_profile, dev); // no exit?
+	printStream(objs);
 	ret = EXIT_SUCCESS;
 
 FAIL:
 	if (e) {
 		print_error(e);
 	}
-	if (dev) {
-		rs2_delete_device(dev);
-	}
-	if (pipeline) {
-		rs2_pipeline_stop(pipeline, &e); // unnecessary?
-		if (e) {
-			print_error(e);
-		}
-		rs2_delete_pipeline(pipeline);
-	}
+	objs_delete(objs);
 	return ret;
 }
