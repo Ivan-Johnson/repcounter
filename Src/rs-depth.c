@@ -193,5 +193,19 @@ void printStream(struct objs objs)
 		rs2_release_frame(frames);
 	}
 
+	// Stop the pipeline streaming
+	rs2_pipeline_stop(objs.pipeline, &e);
+	check_error(e);
+
+	// Release resources
+	free(buffer);
+	rs2_delete_pipeline_profile(objs.pipeline_profile);
+	rs2_delete_stream_profiles_list(objs.stream_profile_list);
+	rs2_delete_config(objs.config);
+	rs2_delete_pipeline(objs.pipeline);
+	rs2_delete_device(objs.dev);
+	rs2_delete_device_list(objs.device_list);
+	rs2_delete_context(objs.ctx);
+
 	free(buffer);
 }

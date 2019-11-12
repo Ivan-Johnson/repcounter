@@ -186,8 +186,8 @@ int main(int argc, char **argv)
 	}
 	printf("Using device \"%s\"\n", name);
 
-	printStream(objs);
-	ret = EXIT_SUCCESS;
+	printStream(objs); //tmp: this does deletes for us
+	return EXIT_SUCCESS;
 
 FAIL:
 	if (e) {
