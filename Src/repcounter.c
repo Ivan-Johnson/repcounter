@@ -83,6 +83,12 @@ bool getFirstDevice(struct args args, rs2_pipeline **pipeline, const rs2_stream_
 		goto FAIL;
 	}
 
+	// Request a specific configuration
+	rs2_config_enable_stream(config, STREAM, STREAM_INDEX, WIDTH, HEIGHT, FORMAT, FPS, &e);
+	if (e) {
+		goto FAIL;
+	}
+
 	//TODO: handle all these errors
 	rs2_pipeline_profile* pipeline_profile;
 	if(args.write) {
@@ -91,11 +97,6 @@ bool getFirstDevice(struct args args, rs2_pipeline **pipeline, const rs2_stream_
 			goto FAIL;
 		}
 		pipeline_profile = rs2_pipeline_start_with_config(*pipeline, config, &e);
-		if (e) {
-			goto FAIL;
-		}
-
-		(*dev) = rs2_pipeline_profile_get_device(pipeline_profile, &e);
 		if (e) {
 			goto FAIL;
 		}
@@ -149,10 +150,10 @@ FAIL:
 SUCCESS:
 	//TODO: delete the rest of the structs?
 	if (device_list) {
-		rs2_delete_device_list(device_list);
+		//rs2_delete_device_list(device_list);
 	}
 	if (ctx) {
-		rs2_delete_context(ctx);
+		//rs2_delete_context(ctx);
 	}
 	return ret;
 }
