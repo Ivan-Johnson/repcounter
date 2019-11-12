@@ -92,7 +92,11 @@ bool getFirstDevice(struct args args, rs2_pipeline **pipeline, const rs2_stream_
 		}
 		pipeline_profile = rs2_pipeline_start_with_config(*pipeline, config, &e);
 		if (e) {
-			printf("The connected device doesn't support depth streaming!\n");
+			goto FAIL;
+		}
+
+		(*dev) = rs2_pipeline_profile_get_device(pipeline_profile, &e);
+		if (e) {
 			goto FAIL;
 		}
 	} else {
@@ -217,6 +221,10 @@ FAIL:
 		rs2_delete_device(dev);
 	}
 	if (pipeline) {
+		rs2_pipeline_stop(pipeline, &e); // unnecessary?
+		if (e) {
+			print_error(e);
+		}
 		rs2_delete_pipeline(pipeline);
 	}
 	return ret;
