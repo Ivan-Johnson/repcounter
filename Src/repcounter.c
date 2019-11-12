@@ -112,20 +112,15 @@ bool getFirstDevice(struct args args, struct objs *objs)
 			goto FAIL;
 		}
 	}
+
+	objs->stream_profile_list = rs2_pipeline_profile_get_streams(objs->pipeline_profile, &objs->err);
 	if (objs->err) {
 		goto FAIL;
 	}
 
-	objs->stream_profile_list = rs2_pipeline_profile_get_streams(objs->pipeline_profile, &objs->err);
-	if (objs->err) {
-		printf("Failed to create stream profile list!\n");
-		exit(EXIT_FAILURE);
-	}
-
 	objs->stream_profile = rs2_get_stream_profile(objs->stream_profile_list, 0, &objs->err);
 	if (objs->err) {
-		printf("Failed to create stream profile!\n");
-		exit(EXIT_FAILURE);
+		goto FAIL;
 	}
 
 
