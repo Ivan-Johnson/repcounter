@@ -88,16 +88,17 @@ float get_depth_unit_value(const rs2_device* const dev)
 	return depth_scale;
 }
 
-static volatile bool plsStop;
-void intHandler(int dummy) {
-	plsStop = true;
-	signal(SIGINT, SIG_DFL);
+static volatile bool termRequested;
+void intHandler(int code) {
+	termRequested = true;
+	signal(code, SIG_DFL);
 }
 
 void printStream(struct objs objs)
 {
-	plsStop = false;
+	termRequested = false;
 	signal(SIGINT, intHandler);
+	signal(SIGTERM, intHandler);
 
 	rs2_error* e = 0;
 
@@ -130,7 +131,7 @@ void printStream(struct objs objs)
 	char* buffer = calloc(display_size, sizeof(char));
 	char* out = NULL;
 
-	while (!plsStop) {
+	while (!termRequested) {
 		// This call waits until a new composite_frame is available
 		// composite_frame holds a set of frames. It is used to prevent frame drops
 		// The returned object should be released with rs2_release_frame(...)
