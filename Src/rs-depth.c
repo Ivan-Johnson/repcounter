@@ -10,9 +10,11 @@
 #include <librealsense2/h/rs_pipeline.h>
 #include <librealsense2/h/rs_option.h>
 #include <librealsense2/h/rs_frame.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <signal.h>
 
 // License: Apache 2.0. See LICENSE file in root directory.
 // Copyright(c) 2017 Intel Corporation. All Rights Reserved.
@@ -44,18 +46,8 @@ void print_device_info(rs2_device* dev)
 	check_error(e);
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                                     These parameters are reconfigurable                                        //
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#define STREAM          RS2_STREAM_DEPTH  // rs2_stream is a types of data provided by RealSense device           //
-#define FORMAT          RS2_FORMAT_Z16    // rs2_format is identifies how binary data is encoded within a frame   //
-#define WIDTH           640               // Defines the number of columns for each frame or zero for auto resolve//
-#define HEIGHT          0                 // Defines the number of lines for each frame or zero for auto resolve  //
-#define FPS             30                // Defines the rate of frames per second                                //
-#define STREAM_INDEX    0                 // Defines the stream index, used for multiple streams of the same type //
 #define HEIGHT_RATIO    20                // Defines the height ratio between the original frame to the new frame //
 #define WIDTH_RATIO     10                // Defines the width ratio between the original frame to the new frame  //
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // The number of meters represented by a single depth unit
 float get_depth_unit_value(const rs2_device* const dev)
@@ -96,54 +88,29 @@ float get_depth_unit_value(const rs2_device* const dev)
 	return depth_scale;
 }
 
+static volatile bool termRequested;
+void intHandler(int code) {
+	termRequested = true;
+	signal(code, SIG_DFL);
+}
 
-void printStream(rs2_context* ctx, rs2_device* dev)
+void printStream(struct objs objs)
 {
+	termRequested = false;
+	signal(SIGINT, intHandler);
+	signal(SIGTERM, intHandler);
+
 	rs2_error* e = 0;
 
 	/* Determine depth value corresponding to one meter */
-	uint16_t one_meter = (uint16_t)(1.0f / get_depth_unit_value(dev));
-
-	// Create a pipeline to configure, start and stop camera streaming
-	// The returned object should be released with rs2_delete_pipeline(...)
-	rs2_pipeline* pipeline =  rs2_create_pipeline(ctx, &e);
-	check_error(e);
-
-	// Create a config instance, used to specify hardware configuration
-	// The retunred object should be released with rs2_delete_config(...)
-	rs2_config* config = rs2_create_config(&e);
-	check_error(e);
-
-	// Request a specific configuration
-	rs2_config_enable_stream(config, STREAM, STREAM_INDEX, WIDTH, HEIGHT, FORMAT, FPS, &e);
-	check_error(e);
-
-	// Start the pipeline streaming
-	// The retunred object should be released with rs2_delete_pipeline_profile(...)
-	rs2_pipeline_profile* pipeline_profile = rs2_pipeline_start_with_config(pipeline, config, &e);
-	if (e) {
-		printf("The connected device doesn't support depth streaming!\n");
-		exit(EXIT_FAILURE);
-	}
-
-	rs2_stream_profile_list* stream_profile_list = rs2_pipeline_profile_get_streams(pipeline_profile, &e);
-	if (e) {
-		printf("Failed to create stream profile list!\n");
-		exit(EXIT_FAILURE);
-	}
-
-	const rs2_stream_profile* stream_profile = rs2_get_stream_profile(stream_profile_list, 0, &e);
-	if (e) {
-		printf("Failed to create stream profile!\n");
-		exit(EXIT_FAILURE);
-	}
+	uint16_t one_meter = (uint16_t)(1.0f / get_depth_unit_value(objs.dev));
 
 	rs2_stream stream;
 	rs2_format format;
 	int index;
 	int unique_id;
 	int framerate;
-	rs2_get_stream_profile_data(stream_profile, &stream, &format, &index, &unique_id, &framerate, &e);
+	rs2_get_stream_profile_data(objs.stream_profile, &stream, &format, &index, &unique_id, &framerate, &e);
 	if (e) {
 		printf("Failed to get stream profile data!\n");
 		exit(EXIT_FAILURE);
@@ -151,7 +118,7 @@ void printStream(rs2_context* ctx, rs2_device* dev)
 
 	int width;
 	int height;
-	rs2_get_video_stream_resolution(stream_profile, &width, &height, &e);
+	rs2_get_video_stream_resolution(objs.stream_profile, &width, &height, &e);
 	if (e) {
 		printf("Failed to get video stream resolution data!\n");
 		exit(EXIT_FAILURE);
@@ -164,11 +131,11 @@ void printStream(rs2_context* ctx, rs2_device* dev)
 	char* buffer = calloc(display_size, sizeof(char));
 	char* out = NULL;
 
-	while (1) {
+	while (!termRequested) {
 		// This call waits until a new composite_frame is available
 		// composite_frame holds a set of frames. It is used to prevent frame drops
 		// The returned object should be released with rs2_release_frame(...)
-		rs2_frame* frames = rs2_pipeline_wait_for_frames(pipeline, RS2_DEFAULT_TIMEOUT, &e);
+		rs2_frame* frames = rs2_pipeline_wait_for_frames(objs.pipeline, RS2_DEFAULT_TIMEOUT, &e);
 		check_error(e);
 
 		// Returns the number of frames embedded within the composite frame
@@ -228,14 +195,18 @@ void printStream(rs2_context* ctx, rs2_device* dev)
 	}
 
 	// Stop the pipeline streaming
-	rs2_pipeline_stop(pipeline, &e);
+	rs2_pipeline_stop(objs.pipeline, &e);
 	check_error(e);
 
 	// Release resources
 	free(buffer);
-	rs2_delete_pipeline_profile(pipeline_profile);
-	rs2_delete_stream_profiles_list(stream_profile_list);
-	rs2_delete_stream_profile((rs2_stream_profile*) stream_profile);
-	rs2_delete_config(config);
-	rs2_delete_pipeline(pipeline);
+	rs2_delete_pipeline_profile(objs.pipeline_profile);
+	rs2_delete_stream_profiles_list(objs.stream_profile_list);
+	rs2_delete_config(objs.config);
+	rs2_delete_pipeline(objs.pipeline);
+	rs2_delete_device(objs.dev);
+	rs2_delete_device_list(objs.device_list);
+	rs2_delete_context(objs.ctx);
+
+	free(buffer);
 }
