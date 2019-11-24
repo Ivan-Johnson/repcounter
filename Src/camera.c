@@ -38,27 +38,6 @@ bool initializeWithFirstDevice(struct args args)
 		goto FAIL;
 	}
 
-	objs.device_list = rs2_query_devices(objs.ctx, &objs.err);
-	if (objs.err) {
-		objs.device_list = NULL;
-		goto FAIL;
-	}
-
-	int dev_count = rs2_get_device_count(objs.device_list, &objs.err);
-	if (objs.err) {
-		goto FAIL;
-	}
-	if (dev_count == 0) {
-		puts("There are no attached devices");
-		goto FAIL;
-	}
-
-	objs.dev = rs2_create_device(objs.device_list, 0, &objs.err);
-	if (objs.err) {
-		objs.dev = NULL;
-		goto FAIL;
-	}
-
 	objs.pipeline = rs2_create_pipeline(objs.ctx, &objs.err);
 	if (objs.err) {
 		objs.pipeline = NULL;
@@ -78,6 +57,27 @@ bool initializeWithFirstDevice(struct args args)
 	}
 
 	if(args.write) {
+		objs.device_list = rs2_query_devices(objs.ctx, &objs.err);
+		if (objs.err) {
+			objs.device_list = NULL;
+			goto FAIL;
+		}
+
+		int dev_count = rs2_get_device_count(objs.device_list, &objs.err);
+		if (objs.err) {
+			goto FAIL;
+		}
+		if (dev_count == 0) {
+			puts("There are no attached devices");
+			goto FAIL;
+		}
+
+		objs.dev = rs2_create_device(objs.device_list, 0, &objs.err);
+		if (objs.err) {
+			objs.dev = NULL;
+			goto FAIL;
+		}
+
 		rs2_config_enable_record_to_file(objs.config, args.file, &objs.err);
 		if (objs.err) {
 			goto FAIL;
@@ -91,8 +91,6 @@ bool initializeWithFirstDevice(struct args args)
 		if (objs.err) {
 			goto FAIL;
 		}
-
-		rs2_delete_device(objs.dev);
 
 		objs.pipeline_profile = rs2_pipeline_start_with_config(objs.pipeline, objs.config, &objs.err);
 		if (objs.err) {
