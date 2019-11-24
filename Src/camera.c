@@ -92,6 +92,8 @@ bool initializeWithFirstDevice(struct args args)
 			goto FAIL;
 		}
 
+		rs2_delete_device(objs.dev);
+
 		objs.pipeline_profile = rs2_pipeline_start_with_config(objs.pipeline, objs.config, &objs.err);
 		if (objs.err) {
 			goto FAIL;
