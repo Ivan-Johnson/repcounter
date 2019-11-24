@@ -13,8 +13,6 @@
 #include "args.h"
 #include "objs.h"
 
-#include "rs-depth.h"
-
 #define STREAM          RS2_STREAM_DEPTH  // rs2_stream is a types of data provided by RealSense device           //
 #define FORMAT          RS2_FORMAT_Z16    // rs2_format is identifies how binary data is encoded within a frame   //
 #define WIDTH           640               // Defines the number of columns for each frame or zero for auto resolve//
@@ -144,9 +142,7 @@ int cameraInit(struct args args)
 		goto FAIL;
 	}
 
-	printStream(objs);
 	return EXIT_SUCCESS;
-
 FAIL:
 	if (e) {
 		print_error(e);

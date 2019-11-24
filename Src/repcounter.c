@@ -42,9 +42,7 @@ int main(int argc, char **argv)
 
 
 	int fail;
-	puts("PREINIT");
 	fail = cameraInit(args);
-	puts("POSTINIT");
 	if (fail) {
 		puts("CAMERA INIT FAILED");
 		return EXIT_FAILURE;
