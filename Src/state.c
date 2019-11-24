@@ -44,7 +44,7 @@ int stateRun()
 
 		struct state state_new = state.function(&err, &ret);
 		if (!stateValid(state_new)) {
-			printf("ERROR: %s returned an invalid state", state.name);
+			printf("ERROR: state %s returned an invalid state: {%p, %p}\n", state.name, state_new.name, state_new.function);
 			return EXIT_FAILURE;
 		}
 		state = state_new;
