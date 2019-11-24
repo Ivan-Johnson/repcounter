@@ -1,9 +1,62 @@
+#include <stdio.h>
+#include <string.h>
+
+#include "args.h"
 #include "state.h"
+#include "camera.h"
 
-int main()
+bool parseArgs(int argc, char **argv, struct args *out)
 {
-	// TODO:
-	// sensorInitialize(SENSOR);
+	if (argc != 3) {
+		goto FAIL;
+	}
 
-	return stateRun();
+	if (!strcmp("--read", argv[1])) {
+		out->write=false;
+	} else if (!strcmp("--write", argv[1])) {
+		out->write=true;
+	} else {
+		goto FAIL;
+	}
+
+	out->file = argv[2];
+
+	return true;
+FAIL:
+	puts("USAGE:");
+	printf("A: %s --write /file/\n", argv[0]);
+	printf("B: %s --read /file/\n", argv[0]);
+	return false;
+
+	//TODO: https://github.com/IntelRealSense/librealsense/blob/master/examples/record-playback/rs-record-playback.cpp
+}
+
+int main(int argc, char **argv)
+{
+	bool success;
+	struct args args;
+	success = parseArgs(argc, argv, &args);
+	if (!success) {
+		return EXIT_FAILURE;
+	}
+
+
+	int fail;
+	puts("PREINIT");
+	fail = cameraInit(args);
+	puts("POSTINIT");
+	if (fail) {
+		puts("CAMERA INIT FAILED");
+		return EXIT_FAILURE;
+	}
+
+	int ret = stateRun();
+
+	fail = cameraDestroy();
+	if (fail) {
+		puts("CAMERA DESTROY FAILED");
+		return EXIT_FAILURE;
+	}
+
+	return ret;
 }
