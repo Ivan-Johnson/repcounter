@@ -27,8 +27,6 @@ FAIL:
 	printf("A: %s --write /file/\n", argv[0]);
 	printf("B: %s --read /file/\n", argv[0]);
 	return false;
-
-	//TODO: https://github.com/IntelRealSense/librealsense/blob/master/examples/record-playback/rs-record-playback.cpp
 }
 
 int main(int argc, char **argv)

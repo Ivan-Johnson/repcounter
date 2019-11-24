@@ -30,7 +30,6 @@ struct objs objs;
 
 bool initializeWithFirstDevice(struct args args)
 {
-	bool ret = false;
 	objs = objs_default_value();
 
 	objs.ctx = rs2_create_context(RS2_API_VERSION, &objs.err);
@@ -78,7 +77,6 @@ bool initializeWithFirstDevice(struct args args)
 		goto FAIL;
 	}
 
-	//TODO: handle all these errors
 	if(args.write) {
 		rs2_config_enable_record_to_file(objs.config, args.file, &objs.err);
 		if (objs.err) {
@@ -117,16 +115,13 @@ bool initializeWithFirstDevice(struct args args)
 		goto FAIL;
 	}
 
-
-	ret = true;
-	goto SUCCESS;
+	return true;
 FAIL:
 	if (objs.err) {
 		print_error(objs.err);
 	}
 	objs_delete(objs);
-SUCCESS:
-	return ret;
+	return false;
 }
 
 
