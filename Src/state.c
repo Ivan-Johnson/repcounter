@@ -1,9 +1,8 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <stdio.h>
 #include <stdlib.h>
-
+#include <string.h>
 
 #include "state.h"
 
@@ -16,7 +15,7 @@ struct state runError(char **err, int *ret)
 
 bool stateEqual(struct state state1, struct state state2)
 {
-	return state1.name == state2.name && state1.function == state2.function;
+	return state1.function == state2.function && strcmp(state1.name, state2.name) == 0;
 }
 
 bool stateValid(struct state state)
