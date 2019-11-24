@@ -48,7 +48,7 @@ void objs_delete(struct objs objs)
 		rs2_delete_device(objs.dev);
 	}
 	if (objs.stream_profile_list) {
-		rs2_delete_device_list(objs.device_list);
+		rs2_delete_stream_profiles_list(objs.stream_profile_list);
 	}
 	if (objs.pipeline_profile) {
 		rs2_delete_pipeline_profile(objs.pipeline_profile);
