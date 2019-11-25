@@ -91,19 +91,24 @@ bool videoEncodeFrame(uint16_t *data)
 
 	// Choosen arbitrarily for one particular situation.
 	// TODO: does this value yield good performance in general?
-	uint16_t valueMax = 4000;
+	uint16_t inputMax = 4000;
 
 	//UINT8_MAX
 
 	for (int y = 0; y < ctx->height; y++) {
 		for (int x = 0; x < ctx->width; x++) {
-			uint16_t valueInit = data[y*ctx->width + x];
+			uint16_t value = data[y*ctx->width + x];
 
-			// scale from uint16_t to uint8_t
-			uint16_t valueOut = (uint16_t) (valueInit * ((float) UINT8_MAX / valueMax));
-			valueOut = valueOut <= UINT8_MAX ? valueOut : UINT8_MAX; // clip to max
+			// clip to max
+			value = value <= inputMax ? value : inputMax;
 
-			frame->data[0][y * frame->linesize[0] + x] = valueOut; // Y
+			// scale to uint8_t
+			value = (uint16_t) (value * ((float) UINT8_MAX / inputMax));
+
+			// invert colors
+			value = UINT8_MAX - value;
+
+			frame->data[0][y * frame->linesize[0] + x] = value; // Y
 		}
 	}
 
