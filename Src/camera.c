@@ -165,23 +165,26 @@ uint16_t* cameraGetFrame()
 	rs2_frame* frames = rs2_pipeline_wait_for_frames(objs.pipeline, RS2_DEFAULT_TIMEOUT, &e);
 	if (e) {
 		frames = NULL;
-		goto FAIL;
+		goto DONE;
 	}
 
         int cFrames = rs2_embedded_frames_count(frames, &e);
 	if (e) {
-		goto FAIL;
+		goto DONE;
 	}
 
-        for (int iFrame = 0; iFrame < cFrames && ret == NULL; iFrame++) {
+        for (int iFrame = 0; iFrame < cFrames && ret == NULL && !fail; iFrame++) {
 		rs2_frame* frame = rs2_extract_frame(frames, iFrame, &e);
 		if (e) {
-			goto FAIL;
+			frame = NULL;
+			fail = true;
+			goto CONTINUE;
 		}
 
 		bool isDepthFrame = rs2_is_frame_extendable_to(frame, RS2_EXTENSION_DEPTH_FRAME, &e);
 		if (e) {
-			goto FAIL;
+			fail = true;
+			goto CONTINUE;
 		}
 
 		if (isDepthFrame) {
@@ -190,26 +193,21 @@ uint16_t* cameraGetFrame()
 			ret = malloc(sizeof(uint16_t) * numPixels);
 			if (!ret) {
 				fail = true;
-				goto FAIL;
+				goto CONTINUE;
 			}
 			for (int i = 0; i < numPixels; i++) {
 				ret[i] = data[i];
 			}
 		}
+	CONTINUE:
 		rs2_release_frame(frame);
 	}
-	if (!ret) {
-		fail = true;
-	}
-FAIL:
+DONE:
 	if (frames) {
 		rs2_release_frame(frames);
 	}
 	if (e) {
 		print_error(e);
-	}
-	if (fail || e) {
-		return NULL;
 	}
 
 	return ret;

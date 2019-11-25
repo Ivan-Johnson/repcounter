@@ -30,6 +30,7 @@ struct state runLowPower (char **err_msg, int *ret)
 			*err_msg = "Failed to encode frame";
 			*ret = 1;
 			stateNext = STATE_ERROR;
+			free(data); //TODO: is there a more elegant way of doing this, without duplicate code?
 			goto DONE;
 		}
 
