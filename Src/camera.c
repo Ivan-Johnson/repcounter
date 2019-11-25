@@ -12,12 +12,12 @@
 
 #include "args.h"
 #include "objs.h"
+#include "camera.h"
 
 #define STREAM          RS2_STREAM_DEPTH  // rs2_stream is a types of data provided by RealSense device           //
 #define FORMAT          RS2_FORMAT_Z16    // rs2_format is identifies how binary data is encoded within a frame   //
 #define WIDTH           640               // Defines the number of columns for each frame or zero for auto resolve//
 #define HEIGHT          0                 // Defines the number of lines for each frame or zero for auto resolve  //
-#define FPS             30                // Defines the rate of frames per second                                //
 #define STREAM_INDEX    0                 // Defines the stream index, used for multiple streams of the same type //
 
 void print_error(rs2_error* e)
@@ -27,8 +27,8 @@ void print_error(rs2_error* e)
 }
 
 struct objs objs;
-int frame_width;
-int frame_height;
+int frame_width = 0;
+int frame_height = 0;
 
 bool initializeWithFirstDevice(struct args args)
 {
@@ -53,7 +53,7 @@ bool initializeWithFirstDevice(struct args args)
 	}
 
 	// Request a specific configuration
-	rs2_config_enable_stream(objs.config, STREAM, STREAM_INDEX, WIDTH, HEIGHT, FORMAT, FPS, &objs.err);
+	rs2_config_enable_stream(objs.config, STREAM, STREAM_INDEX, WIDTH, HEIGHT, FORMAT, CAMERA_FPS, &objs.err);
 	if (objs.err) {
 		goto FAIL;
 	}
@@ -154,15 +154,10 @@ FAIL:
 int cameraDestroy()
 {
 	objs_delete(objs);
+	return 0;
 }
 
-bool cameraHasNewFrame()
-{
-
-}
-
-
-uint16_t*  cameraGetFrame()
+uint16_t* cameraGetFrame()
 {
 	rs2_error* e = NULL; //TODO: just use objs.err? We have to initialize it to NULL though, I think.
 	bool fail = false;
@@ -170,23 +165,26 @@ uint16_t*  cameraGetFrame()
 	rs2_frame* frames = rs2_pipeline_wait_for_frames(objs.pipeline, RS2_DEFAULT_TIMEOUT, &e);
 	if (e) {
 		frames = NULL;
-		goto FAIL;
+		goto DONE;
 	}
 
         int cFrames = rs2_embedded_frames_count(frames, &e);
 	if (e) {
-		goto FAIL;
+		goto DONE;
 	}
 
-        for (int iFrame = 0; iFrame < cFrames && ret == NULL; iFrame++) {
+        for (int iFrame = 0; iFrame < cFrames && ret == NULL && !fail; iFrame++) {
 		rs2_frame* frame = rs2_extract_frame(frames, iFrame, &e);
 		if (e) {
-			goto FAIL;
+			frame = NULL;
+			fail = true;
+			goto CONTINUE;
 		}
 
 		bool isDepthFrame = rs2_is_frame_extendable_to(frame, RS2_EXTENSION_DEPTH_FRAME, &e);
 		if (e) {
-			goto FAIL;
+			fail = true;
+			goto CONTINUE;
 		}
 
 		if (isDepthFrame) {
@@ -195,27 +193,34 @@ uint16_t*  cameraGetFrame()
 			ret = malloc(sizeof(uint16_t) * numPixels);
 			if (!ret) {
 				fail = true;
-				goto FAIL;
+				goto CONTINUE;
 			}
 			for (int i = 0; i < numPixels; i++) {
 				ret[i] = data[i];
 			}
 		}
+	CONTINUE:
 		rs2_release_frame(frame);
 	}
-	if (!ret) {
-		fail = true;
-	}
-FAIL:
+DONE:
 	if (frames) {
 		rs2_release_frame(frames);
 	}
 	if (e) {
 		print_error(e);
 	}
-	if (fail || e) {
-		return NULL;
-	}
 
 	return ret;
+}
+
+int cameraGetFrameWidth()
+{
+	assert(frame_width != 0);
+	return frame_width;
+}
+
+int cameraGetFrameHeight()
+{
+	assert(frame_width != 0);
+	return frame_height;
 }

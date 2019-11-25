@@ -11,6 +11,22 @@ APP=repcounter
 SRC_DIR=Src
 BIN_DIR_BASE=Bin
 
+
+
+FFMPEG_LIBS=    libavdevice                        \
+                libavformat                        \
+                libavfilter                        \
+                libavcodec                         \
+                libswresample                      \
+                libswscale                         \
+                libavutil                          \
+
+CFLAGS += -Wall -g
+CFLAGS := $(shell pkg-config --cflags $(FFMPEG_LIBS)) $(CFLAGS)
+LDLIBS := $(shell pkg-config --libs $(FFMPEG_LIBS)) $(LDLIBS)
+
+
+
 #to cross-compile for windows, uncomment. Executables must be renamed to .exe
 #CC = x86_64-w64-mingw32-gcc
 
