@@ -2,11 +2,17 @@
 #define CAMERA_H
 
 #include <stdbool.h>
+#include <stdint.h>
 
 int cameraInit(struct args args);
 int cameraDestroy();
 
-bool cameraHasNewFrame();
-int cameraGetFrame();
+int cameraGetFrameWidth();
+int cameraGetFrameHeight();
+
+//TODO: test this function
+// Returns NULL on failure, otherwise waits until the next frame of data is
+// available and returns it.
+uint16_t* cameraGetFrame();
 
 #endif

@@ -27,6 +27,8 @@ void print_error(rs2_error* e)
 }
 
 struct objs objs;
+int frame_width;
+int frame_height;
 
 bool initializeWithFirstDevice(struct args args)
 {
@@ -113,6 +115,11 @@ bool initializeWithFirstDevice(struct args args)
 		goto FAIL;
 	}
 
+	rs2_get_video_stream_resolution(objs.stream_profile, &frame_width, &frame_height, &objs.err);
+	if (objs.err) {
+		goto FAIL;
+	}
+
 	return true;
 FAIL:
 	if (objs.err) {
@@ -154,7 +161,61 @@ bool cameraHasNewFrame()
 
 }
 
-int cameraGetFrame()
-{
 
+uint16_t*  cameraGetFrame()
+{
+	rs2_error* e = NULL; //TODO: just use objs.err? We have to initialize it to NULL though, I think.
+	bool fail = false;
+	uint16_t *ret = NULL;
+	rs2_frame* frames = rs2_pipeline_wait_for_frames(objs.pipeline, RS2_DEFAULT_TIMEOUT, &e);
+	if (e) {
+		frames = NULL;
+		goto FAIL;
+	}
+
+        int cFrames = rs2_embedded_frames_count(frames, &e);
+	if (e) {
+		goto FAIL;
+	}
+
+        for (int iFrame = 0; iFrame < cFrames && ret == NULL; iFrame++) {
+		rs2_frame* frame = rs2_extract_frame(frames, iFrame, &e);
+		if (e) {
+			goto FAIL;
+		}
+
+		bool isDepthFrame = rs2_is_frame_extendable_to(frame, RS2_EXTENSION_DEPTH_FRAME, &e);
+		if (e) {
+			goto FAIL;
+		}
+
+		if (isDepthFrame) {
+			const uint16_t* data = (const uint16_t*)(rs2_get_frame_data(frame, &e));
+			int numPixels = frame_width * frame_height;
+			ret = malloc(sizeof(uint16_t) * numPixels);
+			if (!ret) {
+				fail = true;
+				goto FAIL;
+			}
+			for (int i = 0; i < numPixels; i++) {
+				ret[i] = data[i];
+			}
+		}
+		rs2_release_frame(frame);
+	}
+	if (!ret) {
+		fail = true;
+	}
+FAIL:
+	if (frames) {
+		rs2_release_frame(frames);
+	}
+	if (e) {
+		print_error(e);
+	}
+	if (fail || e) {
+		return NULL;
+	}
+
+	return ret;
 }
