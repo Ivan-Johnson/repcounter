@@ -10,24 +10,35 @@
 
 struct state runLowPower (char **err_msg, int *ret)
 {
-	bool b = videoStart("/tmp/test_lp");
+	int numPixels = ccameraGetNumPixels();
 	struct state stateNext = STATE_EXIT;
-	uint16_t *frame = NULL;
+	uint16_t *data_new = NULL;
+	uint16_t *data_old = NULL;
+	uint16_t *data_scratch = NULL;
+	bool b = videoStart("/tmp/test_lp");
 	if (!b) {
 		*err_msg = "Failed to initialize video";
 		*ret = 1;
 		stateNext = STATE_ERROR;
 		goto DONE;
 	}
-	frame = malloc(ccameraGetFrameSize());
-	assert(frame);
+	data_new = malloc(ccameraGetFrameSize());
+	data_old = malloc(ccameraGetFrameSize());
+	data_scratch = malloc(ccameraGetFrameSize());
+	assert(data_new && data_old && data_scratch);
 
-	for (int nFrame = 0; nFrame < 25 * 30; nFrame++) {
-		printf("PROCESSING FRAME %d\n", nFrame);
-		ccameraGetFrame(frame);
+
+	for (int frame = 0; frame < 25 * 3; frame++) {
+		printf("PROCESSING FRAME %d\n", frame);
+
+		ccameraGetFrames(data_new, data_old);
 		unsigned long long tLast = getTimeInMs();
 
-		b = videoEncodeFrame(frame);
+		for (int iPixel = 0; iPixel<numPixels; iPixel++) {
+			data_scratch[iPixel] = abs((int) data_new[iPixel] - (int) data_old[iPixel]);
+		}
+
+		b = videoEncodeFrame(data_scratch);
 		if (!b) {
 			*err_msg = "Failed to encode frame";
 			*ret = 1;
@@ -42,8 +53,14 @@ struct state runLowPower (char **err_msg, int *ret)
 	}
 
 DONE:
-	if (frame) {
-		free(frame);
+	if (data_new) {
+		free(data_new);
+	}
+	if (data_scratch) {
+		free(data_scratch);
+	}
+	if (data_old) {
+		free(data_old);
 	}
 
 	videoStop();
