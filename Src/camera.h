@@ -4,6 +4,10 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "args.h"
+
+#define CAMERA_FPS 30
+
 int cameraInit(struct args args);
 int cameraDestroy();
 

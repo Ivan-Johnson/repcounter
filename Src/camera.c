@@ -12,12 +12,12 @@
 
 #include "args.h"
 #include "objs.h"
+#include "camera.h"
 
 #define STREAM          RS2_STREAM_DEPTH  // rs2_stream is a types of data provided by RealSense device           //
 #define FORMAT          RS2_FORMAT_Z16    // rs2_format is identifies how binary data is encoded within a frame   //
 #define WIDTH           640               // Defines the number of columns for each frame or zero for auto resolve//
 #define HEIGHT          0                 // Defines the number of lines for each frame or zero for auto resolve  //
-#define FPS             30                // Defines the rate of frames per second                                //
 #define STREAM_INDEX    0                 // Defines the stream index, used for multiple streams of the same type //
 
 void print_error(rs2_error* e)
@@ -27,8 +27,8 @@ void print_error(rs2_error* e)
 }
 
 struct objs objs;
-int frame_width;
-int frame_height;
+int frame_width = 0;
+int frame_height = 0;
 
 bool initializeWithFirstDevice(struct args args)
 {
@@ -53,7 +53,7 @@ bool initializeWithFirstDevice(struct args args)
 	}
 
 	// Request a specific configuration
-	rs2_config_enable_stream(objs.config, STREAM, STREAM_INDEX, WIDTH, HEIGHT, FORMAT, FPS, &objs.err);
+	rs2_config_enable_stream(objs.config, STREAM, STREAM_INDEX, WIDTH, HEIGHT, FORMAT, CAMERA_FPS, &objs.err);
 	if (objs.err) {
 		goto FAIL;
 	}
@@ -154,15 +154,10 @@ FAIL:
 int cameraDestroy()
 {
 	objs_delete(objs);
+	return 0;
 }
 
-bool cameraHasNewFrame()
-{
-
-}
-
-
-uint16_t*  cameraGetFrame()
+uint16_t* cameraGetFrame()
 {
 	rs2_error* e = NULL; //TODO: just use objs.err? We have to initialize it to NULL though, I think.
 	bool fail = false;
@@ -218,4 +213,16 @@ FAIL:
 	}
 
 	return ret;
+}
+
+int cameraGetFrameWidth()
+{
+	assert(frame_width != 0);
+	return frame_width;
+}
+
+int cameraGetFrameHeight()
+{
+	assert(frame_width != 0);
+	return frame_height;
 }
