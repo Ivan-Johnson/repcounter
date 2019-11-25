@@ -89,13 +89,21 @@ bool videoEncodeFrame(uint16_t *data)
 		goto FAIL;
 	}
 
-	/* prepare a dummy image */
-	/* Y */
+	// Choosen arbitrarily for one particular situation.
+	// TODO: does this value yield good performance in general?
+	uint16_t valueMax = 4000;
+
+	//UINT8_MAX
+
 	for (int y = 0; y < ctx->height; y++) {
 		for (int x = 0; x < ctx->width; x++) {
-			frame->data[0][y * frame->linesize[0] + x] = data[y*ctx->width + x]; // Y
-			// frame->data[1][y * frame->linesize[1] + x] = 0; // Cb
-			// frame->data[2][y * frame->linesize[2] + x] = 0; // Cr
+			uint16_t valueInit = data[y*ctx->width + x];
+
+			// scale from uint16_t to uint8_t
+			uint16_t valueOut = (uint16_t) (valueInit * ((float) UINT8_MAX / valueMax));
+			valueOut = valueOut <= UINT8_MAX ? valueOut : UINT8_MAX; // clip to max
+
+			frame->data[0][y * frame->linesize[0] + x] = valueOut; // Y
 		}
 	}
 
@@ -180,6 +188,16 @@ bool videoStart(char *filename)
 	if (ret < 0) {
 		fprintf(stderr, "Could not allocate the video frame data\n");
 		goto FAIL;
+	}
+
+	// note that Cb & Cr have half the dimensions of Y.
+	for (int y = 0; y < ctx->height/2; y++) {
+		for (int x = 0; x < ctx->width/2; x++) {
+			// this particular data formate use uint8_t to store data.
+			// using half the maximum value for Cb & Cr makes the image black and white.
+			frame->data[1][y * frame->linesize[1] + x] = UINT8_MAX / 2; //Cb
+			frame->data[2][y * frame->linesize[2] + x] = UINT8_MAX / 2; //Cr
+		}
 	}
 
 	return true;
