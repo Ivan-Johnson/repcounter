@@ -41,7 +41,7 @@
 #include <libavutil/imgutils.h>
 
 #include "video.h"
-#include "camera.h"
+#include "ccamera.h"
 
 AVCodecContext *ctx = NULL;
 AVPacket *pkt;
@@ -150,8 +150,8 @@ bool videoStart(char *filename)
 	/* put sample parameters */
 	ctx->bit_rate = 400000;
 	/* resolution must be a multiple of two */
-	ctx->width = cameraGetFrameWidth();
-	ctx->height = cameraGetFrameHeight();
+	ctx->width = ccameraGetFrameWidth();
+	ctx->height = ccameraGetFrameHeight();
 	/* frames per second */
 	//TODO: 25->CAMERA_FPS?
 	ctx->time_base = (AVRational){1, 25};

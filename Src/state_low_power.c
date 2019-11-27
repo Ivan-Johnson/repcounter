@@ -1,8 +1,9 @@
 #include <stdint.h>
 #include <stdio.h>
+#include <unistd.h>
 
 #include "video.h"
-#include "camera.h"
+#include "ccamera.h"
 #include "state.h"
 
 struct state runLowPower (char **err_msg, int *ret)
@@ -15,9 +16,9 @@ struct state runLowPower (char **err_msg, int *ret)
 		stateNext = STATE_ERROR;
 		goto DONE;
 	}
-	for (int frame = 0; frame < 25 * 5; frame++) {
+	for (int frame = 0; frame < 25 * 10; frame++) {
 		printf("PROCESSING FRAME %d\n", frame);
-		uint16_t *data = cameraGetFrame();
+		uint16_t *data = ccameraGetNewFrame();
 		if (data == NULL) {
 			*err_msg = "Failed to get frame";
 			*ret = 1;
@@ -33,6 +34,8 @@ struct state runLowPower (char **err_msg, int *ret)
 			free(data); //TODO: is there a more elegant way of doing this, without duplicate code?
 			goto DONE;
 		}
+
+		usleep(1e6 / 25);
 
 		free(data);
 	}

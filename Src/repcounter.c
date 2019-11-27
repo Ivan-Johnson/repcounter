@@ -3,7 +3,7 @@
 
 #include "args.h"
 #include "state.h"
-#include "camera.h"
+#include "ccamera.h"
 
 bool parseArgs(int argc, char **argv, struct args *out)
 {
@@ -20,6 +20,9 @@ bool parseArgs(int argc, char **argv, struct args *out)
 	}
 
 	out->file = argv[2];
+
+	out->ccamera_sample_size = 5;
+	out->ccamera_sample_delta = 2;
 
 	return true;
 FAIL:
@@ -40,17 +43,17 @@ int main(int argc, char **argv)
 
 
 	int fail;
-	fail = cameraInit(args);
+	fail = ccameraInit(args);
 	if (fail) {
-		puts("CAMERA INIT FAILED");
+		puts("CCAMERA INIT FAILED");
 		return EXIT_FAILURE;
 	}
 
 	int ret = stateRun();
 
-	fail = cameraDestroy();
+	fail = ccameraDestroy();
 	if (fail) {
-		puts("CAMERA DESTROY FAILED");
+		puts("CCAMERA DESTROY FAILED");
 		return EXIT_FAILURE;
 	}
 
