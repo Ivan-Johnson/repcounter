@@ -149,15 +149,28 @@ static unsigned long long getTimeInMs(){
 
 void *backgroundMain(void *foo)
 {
+	unsigned long long before = 0;
+	unsigned long long after = 0;
+	unsigned int dropped = 0;
 	while(!stopRequested) {
 		// update `frames`
 		free(frames[0]);
 		for (unsigned int iFrame = 1; iFrame < cFrames; iFrame++) {
 			frames[iFrame-1] = frames[iFrame];
 		}
-		frames[cFrames-1] = cameraGetFrame(); // this sleeps for us
 
-		long long before = getTimeInMs();
+		before = getTimeInMs();
+		frames[cFrames-1] = cameraGetFrame(); // this sleeps for us
+		after = getTimeInMs();
+
+		dropped -= 5;
+		dropped = dropped > 0 ? dropped : 0;
+		if (after - before <= 1) {
+			// we didn't have to wait for the next frame.
+			// (we should have to wait 10+ ms)
+			dropped += 10;
+			assert(dropped < 50); // fail if we've been dropping a lot of frames
+		}
 
 		// update frame{Old,New}
 		pthread_mutex_lock(&mutRecent);
@@ -165,8 +178,6 @@ void *backgroundMain(void *foo)
 		computeMedian(frameNew, sample_delta, scratch);
 		pthread_mutex_unlock(&mutRecent);
 
-		unsigned long long after = getTimeInMs();
-		printf("It took %llu ms to compute the medians\n", after - before);
 	}
 
 	return NULL;
