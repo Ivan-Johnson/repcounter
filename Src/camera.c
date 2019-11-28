@@ -157,11 +157,12 @@ int cameraDestroy()
 	return 0;
 }
 
-uint16_t* cameraGetFrame()
+int cameraGetFrame(uint16_t *frameOut)
 {
+	assert(frameOut != NULL);
+
 	rs2_error* e = NULL; //TODO: just use objs.err? We have to initialize it to NULL though, I think.
-	bool fail = false;
-	uint16_t *ret = NULL;
+	int fail = EXIT_FAILURE;
 	rs2_frame* frames = rs2_pipeline_wait_for_frames(objs.pipeline, RS2_DEFAULT_TIMEOUT, &e);
 	if (e) {
 		frames = NULL;
@@ -173,34 +174,34 @@ uint16_t* cameraGetFrame()
 		goto DONE;
 	}
 
-        for (int iFrame = 0; iFrame < cFrames && ret == NULL && !fail; iFrame++) {
+	bool brk = false;
+	for (int iFrame = 0; iFrame < cFrames && !brk; iFrame++) {
 		rs2_frame* frame = rs2_extract_frame(frames, iFrame, &e);
 		if (e) {
 			frame = NULL;
-			fail = true;
+			brk = true;
 			goto CONTINUE;
 		}
 
 		bool isDepthFrame = rs2_is_frame_extendable_to(frame, RS2_EXTENSION_DEPTH_FRAME, &e);
 		if (e) {
-			fail = true;
+			brk = true;
 			goto CONTINUE;
 		}
 
 		if (isDepthFrame) {
 			const uint16_t* data = (const uint16_t*)(rs2_get_frame_data(frame, &e));
 			int numPixels = frame_width * frame_height;
-			ret = malloc(sizeof(uint16_t) * numPixels);
-			if (!ret) {
-				fail = true;
-				goto CONTINUE;
-			}
 			for (int i = 0; i < numPixels; i++) {
-				ret[i] = data[i];
+				frameOut[i] = data[i];
 			}
+			brk = true;
+			fail = EXIT_SUCCESS;
 		}
 	CONTINUE:
-		rs2_release_frame(frame);
+		if (frame) {
+			rs2_release_frame(frame);
+		}
 	}
 DONE:
 	if (frames) {
@@ -210,7 +211,7 @@ DONE:
 		print_error(e);
 	}
 
-	return ret;
+	return fail;
 }
 
 int cameraGetFrameWidth()

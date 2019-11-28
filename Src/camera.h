@@ -14,8 +14,7 @@ int cameraDestroy();
 int cameraGetFrameWidth();
 int cameraGetFrameHeight();
 
-// Returns NULL on failure, otherwise waits until the next frame of data is
-// available and returns it.
-uint16_t* cameraGetFrame();
+// Waits for the next frame and writes it to frameOut
+int cameraGetFrame(uint16_t *frameOut);
 
 #endif

@@ -55,7 +55,9 @@ int ccameraInit(struct args args)
 	assert(frames);
 
 	for (unsigned int i = 0; i < cFrames; i++) {
-		frames[i] = cameraGetFrame();
+		frames[i] = malloc(ccameraGetFrameSize());
+		assert(frames[i]);
+		assert(!cameraGetFrame(frames[i]));
 	}
 
 	frameNew = malloc(sizeof(*frameNew) * ccameraGetNumPixels());
@@ -86,6 +88,7 @@ int ccameraDestroy()
 	for (unsigned int i = 0; i < cFrames; i++) {
 		free(frames[i]);
 	}
+	free(frames);
 	free(frameNew);
 	free(frameOld);
 	free(scratch);
@@ -144,14 +147,17 @@ void *backgroundMain(void *foo)
 	unsigned long long after = 0;
 	unsigned int dropped = 0;
 	while(!stopRequested) {
-		// update `frames`
-		free(frames[0]);
+		// rotate `frames` array
+		uint16_t *tmp = frames[0];
 		for (unsigned int iFrame = 1; iFrame < cFrames; iFrame++) {
 			frames[iFrame-1] = frames[iFrame];
 		}
+		frames[cFrames-1] = tmp;
 
+		// get new frame
 		before = getTimeInMs();
-		frames[cFrames-1] = cameraGetFrame(); // this sleeps for us
+		// this runs ~instantaneously unless it has to wait for a new frame
+		assert(!cameraGetFrame(frames[cFrames-1]));
 		after = getTimeInMs();
 
 		dropped -= 5;
@@ -199,36 +205,21 @@ size_t ccameraGetFrameSize()
 	return size;
 }
 
-static uint16_t* duplicateFrame(uint16_t *frame)
-{
-	uint16_t *ret = malloc(ccameraGetFrameSize());
-	if (!ret) {
-		return NULL;
-	}
-
-	memcpy(ret, frame, ccameraGetFrameSize());
-
-	return ret;
-}
-
-uint16_t* ccameraGetNewFrame()
+void ccameraGetFrame(uint16_t* frameOut)
 {
 	assert(!pthread_mutex_lock(&mutRecent));
 
-	uint16_t *ret = duplicateFrame(frameNew);
+	memcpy(frameOut, frameNew, ccameraGetFrameSize());
 
 	assert(!pthread_mutex_unlock(&mutRecent));
-
-	return ret;
 }
 
-uint16_t* ccameraGetOldFrame()
+void ccameraGetFrames(uint16_t* outNew, uint16_t* outOld)
 {
 	assert(!pthread_mutex_lock(&mutRecent));
 
-	uint16_t *ret = duplicateFrame(frameOld);
+	memcpy(outNew, frameNew, ccameraGetFrameSize());
+	memcpy(outOld, frameOld, ccameraGetFrameSize());
 
 	assert(!pthread_mutex_unlock(&mutRecent));
-
-	return ret;
 }
