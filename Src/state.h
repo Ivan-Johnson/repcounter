@@ -31,10 +31,10 @@ struct state runCounting(char **err, int *ret);
 struct state runStarting(char **err, int *ret);
 #define STATE_STARTING ((struct state) { .name="starting", .function=runStarting, })
 
+struct state runRecording(char **err_msg, int *retStatus);
+#define STATE_RECORDING ((struct state) { .name="recording", .function=runRecording, })
 
-
-
-static const struct state ALL_STATES[] = { STATE_EXIT, STATE_ERROR, STATE_LOW_POWER, STATE_STARTING, STATE_COUNTING };
+static const struct state ALL_STATES[] = { STATE_EXIT, STATE_ERROR, STATE_LOW_POWER, STATE_STARTING, STATE_COUNTING, STATE_RECORDING };
 static const size_t NUM_STATES = sizeof(ALL_STATES) / sizeof(struct state);
 #define INITIAL_STATE STATE_LOW_POWER
 
