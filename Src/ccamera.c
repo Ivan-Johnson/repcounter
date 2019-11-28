@@ -10,9 +10,15 @@
 
 static unsigned int sample_size;
 static unsigned int sample_delta;
-static int cFrames;
-static uint16_t **frames;
+static unsigned int cFrames;
 static uint16_t *frameNew, *frameOld;
+
+// a buffer for intermediate calculations of size sufficient to store an entire
+// frame.
+static uint16_t *scratch;
+
+// the cFrames most recent frames from the camera. Large indicies are newer.
+static uint16_t **frames;
 
 static pthread_mutex_t mutex = PTHREAD_ERRORCHECK_MUTEX_INITIALIZER_NP;
 static pthread_t background;
@@ -52,7 +58,8 @@ int ccameraInit(struct args args)
 
 	frameNew = malloc(sizeof(*frameNew) * ccameraGetNumPixels());
 	frameOld = malloc(sizeof(*frameOld) * ccameraGetNumPixels());
-	assert(frameNew && frameOld);
+	scratch = malloc(sizeof(*frameOld) * ccameraGetNumPixels());
+	assert(frameNew && frameOld && scratch);
 
 	fail = pthread_create(&background, NULL, &backgroundMain, NULL);
 	assert(!fail);
@@ -82,10 +89,56 @@ int ccameraDestroy()
 	}
 	free(frameNew);
 	free(frameOld);
+	free(scratch);
 
 	assert(!cameraDestroy());
 
 	return 0;
+}
+
+static void pixelSort(uint16_t *buf, size_t cPix)
+{
+	// if this fails, the function needs to be optimized for large inputs
+	assert(cPix < 100);
+
+	// bubble sort, because:
+	//
+	// A: it's trivial to implement, with a low risk of bugs
+	//
+	// B: for small inputs, it's faster than recursive algorithms.
+	// Especially ones that rely on callbacks, like qsort.
+	bool isSorted = false;
+	while(!isSorted) {
+		isSorted = true;
+		for (size_t iPix = 1; iPix < cPix; iPix++) {
+			if (buf[iPix-1] < buf[iPix]) {
+				isSorted = false;
+				uint16_t tmp = buf[iPix-1];
+				buf[iPix-1] = buf[iPix];
+				buf[iPix] = tmp;
+			}
+		}
+	}
+}
+
+// After calling this function, frameOut[i] is the median of frames[j][i] for j
+// in [iStart, iStart+sample_size)
+//
+// scratch is a temporary storage buffer of sufficient size to store at least sample_size+iStart pixels.
+static void computeMedian(uint16_t *frameOut, unsigned int iStart, uint16_t *scratch)
+{
+	unsigned int iEnd    = iStart + sample_size;
+	unsigned int iMedian = iStart + sample_size / 2;
+	int cPixels = ccameraGetNumPixels();
+
+	for (int iPixel = 0; iPixel < cPixels; iPixel++) {
+		for (unsigned int iFrame = iStart; iFrame < iEnd; iFrame++) {
+			scratch[iFrame] = frames[iFrame][iPixel];
+		}
+
+		pixelSort(scratch, sample_size);
+		frameOut[iPixel] = scratch[iMedian];
+	}
 }
 
 void *backgroundMain(void *foo)
@@ -96,10 +149,16 @@ void *backgroundMain(void *foo)
 		usleep(100000);
 		pthread_mutex_lock(&mutex);
 
-		free(frameOld);
-		frameOld = frameNew;
+		// update frames
+		free(frames[0]);
+		for (unsigned int iFrame = 1; iFrame < cFrames; iFrame++) {
+			frames[iFrame-1] = frames[iFrame];
+		}
+		frames[cFrames-1] = cameraGetFrame();
 
-		frameNew = cameraGetFrame();
+		// update frame{Old,New}
+		computeMedian(frameOld, 0, scratch);
+		computeMedian(frameNew, sample_delta, scratch);
 	}
 	pthread_mutex_unlock(&mutex);
 	return NULL;
