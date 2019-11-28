@@ -56,9 +56,6 @@ static void encode(AVFrame *frame)
 	int ret;
 
 	/* send the frame to the encoder */
-	if (frame)
-		printf("Send frame %3"PRId64"\n", frame->pts);
-
 	ret = avcodec_send_frame(ctx, frame);
 	if (ret < 0) {
 		fprintf(stderr, "Error sending a frame for encoding\n");
@@ -74,7 +71,6 @@ static void encode(AVFrame *frame)
 			exit(1);
 		}
 
-		printf("Write packet %3"PRId64" (size=%5d)\n", pkt->pts, pkt->size);
 		fwrite(pkt->data, 1, pkt->size, outfile);
 		av_packet_unref(pkt);
 	}

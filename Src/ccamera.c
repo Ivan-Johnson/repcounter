@@ -1,8 +1,9 @@
 #include <assert.h>
 #include <pthread.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
+#include <sys/time.h>
 #include <unistd.h>
 
 #include "camera.h"
@@ -139,6 +140,15 @@ static void computeMedian(uint16_t *frameOut, unsigned int iStart, uint16_t *scr
 	}
 }
 
+static unsigned long long getTimeInMs(){
+	struct timeval currentTime;
+	gettimeofday(&currentTime, NULL);
+
+	// be careful to minimize the risk of overflows
+	return (unsigned long long) currentTime.tv_sec  * (unsigned long long) 1000 +
+	       (unsigned long long) currentTime.tv_usec / (unsigned long long) 1000;
+}
+
 void *backgroundMain(void *foo)
 {
 	while(!stopRequested) {
@@ -149,11 +159,16 @@ void *backgroundMain(void *foo)
 		}
 		frames[cFrames-1] = cameraGetFrame(); // this sleeps for us
 
+		long long before = getTimeInMs();
+
 		// update frame{Old,New}
 		pthread_mutex_lock(&mutRecent);
 		computeMedian(frameOld, 0, scratch);
 		computeMedian(frameNew, sample_delta, scratch);
 		pthread_mutex_unlock(&mutRecent);
+
+		unsigned long long after = getTimeInMs();
+		printf("It took %llu ms to compute the medians\n", after - before);
 	}
 
 	return NULL;
