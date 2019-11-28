@@ -57,7 +57,7 @@ endif
 
 OPTS_DEBUG = -D DEBUG -O0 -ggdb -fno-inline
 OPTS_OPTIMIZED = -O3
-OPTIMIZED ?= 0
+OPTIMIZED ?= 1
 ifeq ($(shell test $(OPTIMIZED) -eq 0; echo $$?),0)
 	CFLAGS += $(OPTS_DEBUG)
 else

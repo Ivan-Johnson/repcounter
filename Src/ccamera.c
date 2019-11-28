@@ -98,25 +98,23 @@ int ccameraDestroy()
 static void pixelSort(uint16_t *buf, size_t cPix)
 {
 	// if this fails, the function needs to be optimized for large inputs
-	assert(cPix < 100);
+	assert(cPix < 30);
 
-	// bubble sort, because:
-	//
-	// A: it's trivial to implement, with a low risk of bugs
-	//
-	// B: for small inputs, it's faster than recursive algorithms.
-	// Especially ones that rely on callbacks, like qsort.
-	bool isSorted = false;
-	while(!isSorted) {
-		isSorted = true;
-		for (size_t iPix = 1; iPix < cPix; iPix++) {
-			if (buf[iPix-1] < buf[iPix]) {
-				isSorted = false;
-				uint16_t tmp = buf[iPix-1];
-				buf[iPix-1] = buf[iPix];
-				buf[iPix] = tmp;
-			}
+	//  insertion sort
+	for(size_t ii = 1; ii < cPix; ii++) {
+		// buf is sorted for indicies strictly less than ii
+
+		uint16_t tmp = buf[ii];
+
+		// shift right-most elements right by one until we've found the
+		// spot for `tmp`
+		size_t ij = ii - 1;
+		while(ij >= 0 && tmp < buf[ij]) {
+			buf[ij + 1] = buf[ij];
+			ij--;
 		}
+
+		buf[ij + 1] = tmp;
 	}
 }
 
