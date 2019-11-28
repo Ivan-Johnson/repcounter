@@ -22,7 +22,7 @@ bool parseArgs(int argc, char **argv, struct args *out)
 	out->file = argv[2];
 
 	out->ccamera_sample_size = 5;
-	out->ccamera_sample_delta = 2;
+	out->ccamera_sample_delta = 4;
 
 	return true;
 FAIL:
