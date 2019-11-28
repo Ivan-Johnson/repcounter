@@ -3,11 +3,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/time.h>
 #include <unistd.h>
 
 #include "camera.h"
 #include "ccamera.h"
+#include "helper.h"
 
 static unsigned int sample_size;
 static unsigned int sample_delta;
@@ -136,15 +136,6 @@ static void computeMedian(uint16_t *frameOut, unsigned int iStart, uint16_t *scr
 		pixelSort(scratch, sample_size);
 		frameOut[iPixel] = scratch[iMedian];
 	}
-}
-
-static unsigned long long getTimeInMs(){
-	struct timeval currentTime;
-	gettimeofday(&currentTime, NULL);
-
-	// be careful to minimize the risk of overflows
-	return (unsigned long long) currentTime.tv_sec  * (unsigned long long) 1000 +
-	       (unsigned long long) currentTime.tv_usec / (unsigned long long) 1000;
 }
 
 void *backgroundMain(void *foo)

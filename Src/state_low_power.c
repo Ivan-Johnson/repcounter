@@ -4,6 +4,7 @@
 
 #include "video.h"
 #include "ccamera.h"
+#include "helper.h"
 #include "state.h"
 
 struct state runLowPower (char **err_msg, int *ret)
@@ -16,9 +17,11 @@ struct state runLowPower (char **err_msg, int *ret)
 		stateNext = STATE_ERROR;
 		goto DONE;
 	}
-	for (int frame = 0; frame < 25 * 10; frame++) {
+	for (int frame = 0; frame < 25 * 240; frame++) {
 		printf("PROCESSING FRAME %d\n", frame);
 		uint16_t *data = ccameraGetNewFrame();
+		unsigned long long tLast = getTimeInMs();
+
 		if (data == NULL) {
 			*err_msg = "Failed to get frame";
 			*ret = 1;
@@ -35,9 +38,13 @@ struct state runLowPower (char **err_msg, int *ret)
 			goto DONE;
 		}
 
-		usleep(1e6 / 25);
-
 		free(data);
+
+		unsigned long long tNext = tLast + 1000/25;
+		int tSleep = (long long) tNext - tLast;
+		tSleep = tSleep > 0 ? tSleep : tSleep;
+		usleep(tSleep * 1000);
+
 	}
 
 DONE:
