@@ -104,7 +104,10 @@ $(BIN_DIR)/%.o: | $(BIN_DIR)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 $(DEPENDS): $(SOURCES) $(HEADERS) | $(BIN_DIR)
-	$(CC) $(CFLAGS) -MM $(SOURCES) | sed -e 's!^!$(BIN_DIR)/!' >$@
+#gcc -MM generates a make file, but we need to add $(BIN_DIR) to the start of
+#each line. Some lines are wrapped and indented with a space, so we don't need
+#to prepend to lines that start with a space.
+	$(CC) $(CFLAGS) -MM $(SOURCES) | sed -Ee 's!^([^ ])!$(BIN_DIR)/\1!' >$@
 
 -include $(DEPENDS)
 
