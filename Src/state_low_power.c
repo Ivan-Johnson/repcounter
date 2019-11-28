@@ -5,6 +5,7 @@
 #include <math.h>
 
 #include "video.h"
+#include "camera.h"
 #include "ccamera.h"
 #include "helper.h"
 #include "state.h"
@@ -40,7 +41,7 @@ struct state runLowPower (char **err_msg, int *ret)
 #define CURWEIGHT 0.15
 		cActive = CURWEIGHT*nActivePixels + (1-CURWEIGHT)*cActive;
 
-		unsigned long long tNext = tLast + 1000/25;
+		unsigned long long tNext = tLast + 1000/CAMERA_FPS;
 		int tSleep = (long long) tNext - tLast;
 		tSleep = tSleep > 0 ? tSleep : tSleep;
 		usleep(tSleep * 1000);
