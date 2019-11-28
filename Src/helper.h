@@ -3,7 +3,8 @@
 
 #include <sys/time.h>
 
-static unsigned long long getTimeInMs(){
+static unsigned long long getTimeInMs()
+{
 	struct timeval currentTime;
 	gettimeofday(&currentTime, NULL);
 
