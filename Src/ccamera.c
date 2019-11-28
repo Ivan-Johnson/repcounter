@@ -88,6 +88,7 @@ int ccameraDestroy()
 	for (unsigned int i = 0; i < cFrames; i++) {
 		free(frames[i]);
 	}
+	free(frames);
 	free(frameNew);
 	free(frameOld);
 	free(scratch);
