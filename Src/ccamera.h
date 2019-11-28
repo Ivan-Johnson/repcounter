@@ -18,14 +18,7 @@ size_t ccameraGetFrameSize();
 
 uint16_t ccameraGetPixelFromFrame(uint16_t *frame, size_t x, size_t y);
 
-// TODO/OPTIMIZE: instead of returning `malloc`ed memory, take an input
-// argument. Duh.
-//
-// returns the latest frame of clean data. Must be `free`ed
-uint16_t* ccameraGetNewFrame();
-
-// Same as ccameraGetNewFrame, except instead of the latest frame, return the
-// almost-latest, as specified by the initialization args.
-uint16_t* ccameraGetOldFrame();
+void ccameraGetFrame(uint16_t* frameOut);
+void ccameraGetFrames(uint16_t* frameNew, uint16_t* frameOld);
 
 #endif
