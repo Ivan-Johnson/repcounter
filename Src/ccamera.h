@@ -4,6 +4,7 @@
 // This `Clean Camera` module is a wrapper around `camera` that denoises data,
 // and adds a couple of other helpful features.
 
+#include <stdlib.h>
 #include <stdint.h>
 
 #include "args.h"
