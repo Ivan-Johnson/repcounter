@@ -30,7 +30,8 @@ LDLIBS := $(shell pkg-config --libs $(FFMPEG_LIBS)) $(LDLIBS)
 #to cross-compile for windows, uncomment. Executables must be renamed to .exe
 #CC = x86_64-w64-mingw32-gcc
 
-CFLAGS += -I$(SRC_DIR)
+CFLAGS += -I$(SRC_DIR) -pthread
+CFLAGS += -D _GNU_SOURCE
 CFLAGS += -Wfatal-errors -std=c99
 
 
@@ -56,7 +57,7 @@ endif
 
 OPTS_DEBUG = -D DEBUG -O0 -ggdb -fno-inline
 OPTS_OPTIMIZED = -O3
-OPTIMIZED ?= 0
+OPTIMIZED ?= 1
 ifeq ($(shell test $(OPTIMIZED) -eq 0; echo $$?),0)
 	CFLAGS += $(OPTS_DEBUG)
 else
@@ -69,7 +70,7 @@ CFLAGS += -D_DEFAULT_SOURCE -mssse3 -pthread
 
 #todo: remove rdynamic?
 LDFLAGS += -rdynamic
-LDLIBS += -lGL -lGLU -lrt -lm -ldl -lX11 -l:librealsense2.so
+LDLIBS += -lGL -lGLU -lrt -lm -ldl -lX11 -l:librealsense2.so -pthread
 
 
 

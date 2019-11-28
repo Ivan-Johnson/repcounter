@@ -14,7 +14,6 @@ int cameraDestroy();
 int cameraGetFrameWidth();
 int cameraGetFrameHeight();
 
-//TODO: test this function
 // Returns NULL on failure, otherwise waits until the next frame of data is
 // available and returns it.
 uint16_t* cameraGetFrame();

@@ -6,6 +6,9 @@
 struct args {
 	bool write;
 	char *file;
+
+	unsigned int ccamera_sample_size;
+	unsigned int ccamera_sample_delta;
 };
 
 #endif
