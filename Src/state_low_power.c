@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <math.h>
 
 #include "video.h"
 #include "ccamera.h"
@@ -11,42 +12,33 @@
 struct state runLowPower (char **err_msg, int *ret)
 {
 	int numPixels = ccameraGetNumPixels();
-	struct state stateNext = STATE_EXIT;
+	struct state stateNext = STATE_STARTING;
 	uint16_t *data_new = NULL;
 	uint16_t *data_old = NULL;
 	uint16_t *data_scratch = NULL;
-	bool b = videoStart("/tmp/test_lp");
-	if (!b) {
-		*err_msg = "Failed to initialize video";
-		*ret = 1;
-		stateNext = STATE_ERROR;
-		goto DONE;
-	}
 	data_new = malloc(ccameraGetFrameSize());
 	data_old = malloc(ccameraGetFrameSize());
 	data_scratch = malloc(ccameraGetFrameSize());
 	assert(data_new && data_old && data_scratch);
 
+	unsigned long long tStart = getTimeInMs();
 
-	for (int frame = 0; frame < 25 * 10; frame++) {
-		printf("PROCESSING FRAME %d\n", frame);
-
+	float cActive = 0;
+	float cThreshold = 0.1 * numPixels; // randomly chosen, but it works
+	while (cActive < cThreshold) {
 		ccameraGetFrames(data_new, data_old);
 		unsigned long long tLast = getTimeInMs();
 
+		float nActivePixels = 0;
 		for (int iPixel = 0; iPixel<numPixels; iPixel++) {
-			data_scratch[iPixel] = abs((int) data_new[iPixel] - (int) data_old[iPixel]);
-			data_scratch[iPixel] = data_scratch[iPixel] > 40 ? 4000 : 0;
+			float activeness = fabs((float) data_new[iPixel] - (float) data_old[iPixel]);
+			if (activeness > 40) {
+				nActivePixels++;
+			}
 		}
 
-		b = videoEncodeFrame(data_scratch);
-		//b = videoEncodeFrame(data_new);
-		if (!b) {
-			*err_msg = "Failed to encode frame";
-			*ret = 1;
-			stateNext = STATE_ERROR;
-			goto DONE;
-		}
+#define CURWEIGHT 0.15
+		cActive = CURWEIGHT*nActivePixels + (1-CURWEIGHT)*cActive;
 
 		unsigned long long tNext = tLast + 1000/25;
 		int tSleep = (long long) tNext - tLast;
@@ -54,7 +46,8 @@ struct state runLowPower (char **err_msg, int *ret)
 		usleep(tSleep * 1000);
 	}
 
-DONE:
+	printf("Activated after %f s\n", (getTimeInMs() - tStart)/1000.0);
+
 	if (data_new) {
 		free(data_new);
 	}
@@ -65,6 +58,5 @@ DONE:
 		free(data_old);
 	}
 
-	videoStop();
 	return stateNext;
 }
