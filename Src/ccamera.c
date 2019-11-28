@@ -11,7 +11,6 @@
 static unsigned int sample_size;
 static unsigned int sample_delta;
 static unsigned int cFrames;
-static uint16_t *frameNew, *frameOld;
 
 // a buffer for intermediate calculations of size sufficient to store an entire
 // frame.
@@ -20,7 +19,12 @@ static uint16_t *scratch;
 // the cFrames most recent frames from the camera. Large indicies are newer.
 static uint16_t **frames;
 
-static pthread_mutex_t mutex = PTHREAD_ERRORCHECK_MUTEX_INITIALIZER_NP;
+
+static uint16_t *frameNew, *frameOld;
+
+// mutRecent is a mutex specifically for accessing frameNew and frameOld
+static pthread_mutex_t mutRecent = PTHREAD_ERRORCHECK_MUTEX_INITIALIZER_NP;
+
 static pthread_t background;
 static bool stopRequested;
 
@@ -39,9 +43,6 @@ int ccameraInit(struct args args)
 	if (fail) {
 		return fail;
 	}
-
-	fail = pthread_mutex_lock(&mutex);
-	assert(!fail);
 
 	sample_size = args.ccamera_sample_size;
 	sample_delta = args.ccamera_sample_delta;
@@ -64,9 +65,6 @@ int ccameraInit(struct args args)
 	fail = pthread_create(&background, NULL, &backgroundMain, NULL);
 	assert(!fail);
 
-	pthread_mutex_unlock(&mutex);
-	assert(!fail);
-
 	return 0;
 }
 
@@ -82,7 +80,7 @@ int ccameraDestroy()
 	int fail = pthread_timedjoin_np(background, NULL, &stop);
 	assert(!fail);
 
-	assert(!pthread_mutex_destroy(&mutex));
+	assert(!pthread_mutex_destroy(&mutRecent));
 
 	for (unsigned int i = 0; i < cFrames; i++) {
 		free(frames[i]);
@@ -143,24 +141,21 @@ static void computeMedian(uint16_t *frameOut, unsigned int iStart, uint16_t *scr
 
 void *backgroundMain(void *foo)
 {
-	pthread_mutex_lock(&mutex);
 	while(!stopRequested) {
-		pthread_mutex_unlock(&mutex);
-		usleep(100000);
-		pthread_mutex_lock(&mutex);
-
-		// update frames
+		// update `frames`
 		free(frames[0]);
 		for (unsigned int iFrame = 1; iFrame < cFrames; iFrame++) {
 			frames[iFrame-1] = frames[iFrame];
 		}
-		frames[cFrames-1] = cameraGetFrame();
+		frames[cFrames-1] = cameraGetFrame(); // this sleeps for us
 
 		// update frame{Old,New}
+		pthread_mutex_lock(&mutRecent);
 		computeMedian(frameOld, 0, scratch);
 		computeMedian(frameNew, sample_delta, scratch);
+		pthread_mutex_unlock(&mutRecent);
 	}
-	pthread_mutex_unlock(&mutex);
+
 	return NULL;
 }
 
@@ -203,22 +198,22 @@ static uint16_t* duplicateFrame(uint16_t *frame)
 
 uint16_t* ccameraGetNewFrame()
 {
-	assert(!pthread_mutex_lock(&mutex));
+	assert(!pthread_mutex_lock(&mutRecent));
 
 	uint16_t *ret = duplicateFrame(frameNew);
 
-	assert(!pthread_mutex_unlock(&mutex));
+	assert(!pthread_mutex_unlock(&mutRecent));
 
 	return ret;
 }
 
 uint16_t* ccameraGetOldFrame()
 {
-	assert(!pthread_mutex_lock(&mutex));
+	assert(!pthread_mutex_lock(&mutRecent));
 
 	uint16_t *ret = duplicateFrame(frameOld);
 
-	assert(!pthread_mutex_unlock(&mutex));
+	assert(!pthread_mutex_unlock(&mutRecent));
 
 	return ret;
 }
