@@ -1,5 +1,7 @@
 #include <assert.h>
 #include <pthread.h>
+#include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 
 #include "camera.h"
@@ -15,16 +17,23 @@ static const unsigned int cFrames = CAMERA_FPS * 5; // # of frames in `frames`.
 static pthread_mutex_t mutFrames = PTHREAD_ERRORCHECK_MUTEX_INITIALIZER_NP;
 
 
-#define US_DELAY (1000000 / CAMERA_FPS)
+#define US_DELAY_MOVE 1000000
 
 // Stores the new frames that have not yet been considered. It is initially
 // empty, but a separate thread adds new frames to it as they become
-// available. Approximately once ever `US_DELAY` uSeconds a different thread
-// flushes them to `frames`.
+// available. Approximately once ever `US_DELAY_MOVE` uSeconds a different
+// thread flushes them to `frames`.
 static uint16_t **fNew;
-static unsigned int cFNew;
+// how many frames are in fNew right now
+static unsigned int cFNew = 0;
 static const unsigned int cFNewMax = CAMERA_FPS * 2;
+// a single scratch buffer (of size `cFNewMax`) for storing pointers to
+// frames. i.e. it is not an array of many scratch frames. May only be used by
+// whoever has the `mutFNew` mutex locked.
+static uint16_t **fNewScratch;
 static pthread_mutex_t mutFNew = PTHREAD_ERRORCHECK_MUTEX_INITIALIZER_NP;
+
+
 
 static pthread_t thdRead; // reads individual frames into `fNew`
 static pthread_t thdMove; // Moves data from `fNew` to `frames`
@@ -36,7 +45,13 @@ static void* readMain(void *none)
 	while (!done) {
 		usleep(1000000 / CAMERA_FPS);
 
-		// TODO: read
+		pthread_mutex_lock(&mutFNew);
+
+		assert(cFNew < cFNewMax);
+		ccameraGetFrame(fNew[cFNew]);
+		cFNew++;
+
+		pthread_mutex_unlock(&mutFNew);
 	}
 
 	return NULL;
@@ -45,13 +60,48 @@ static void* readMain(void *none)
 static void* moveMain(void* none)
 {
 	while (!done) {
-		usleep(US_DELAY);
+		usleep(US_DELAY_MOVE);
 
-		//TODO: move
+		// we're deliberately locking mutFrame before mutFNew because of
+		// the combined reasons:
+		//
+		// A: mutFNew is much more sensitive to being locked for
+		//    extended periods of time than mutFrame is
+		//
+		// B: locking mutFrame might take a while
+		//
+		// Also note that we can't delay the locking of mutFNew because
+		// we're using cFNew.
+		pthread_mutex_lock(&mutFrames);
+		pthread_mutex_lock(&mutFNew);
 
-		// (Remember to lock `mutFrames` /before/ locking `mutFNew`. If
-		// you use the reverse order, you'll likely end up blocking
-		// `thdRead` for far too long)
+		// "delete" the `cFNew` oldest frames from `frames`
+		for (unsigned int ii = 0; ii < cFNew; ii++) {
+			fNewScratch[ii] = frames[ii];
+		}
+
+		// shift frames to account for the "deletetion" of `cFNew` frames
+		for (unsigned int iWrite = 0; iWrite+cFNew < cFrames; iWrite++) {
+			frames[iWrite] = frames[iWrite+cFNew];
+		}
+		// frames[cFrames - cFNew] is the first frame of garbage
+
+		// copy `cFNew` frames from `fNew` to `frames`
+		// `offset` is the first free spot in `frames`
+		unsigned int offset = cFrames - cFNew;
+		for (unsigned int iRead = 0; iRead < cFNew; iRead++) {
+			// append a valid frame pointer to `frames`
+			frames[offset + iRead] = fNewScratch[iRead];
+
+			// copy the data
+			memcpy(frames[offset + iRead], fNew[iRead], ccameraGetFrameSize());
+		}
+
+		// clear the contents of fNew
+		cFNew = 0;
+
+		pthread_mutex_unlock(&mutFNew);
+		pthread_mutex_unlock(&mutFrames);
 	}
 
 	return NULL;
@@ -67,8 +117,11 @@ static void initialize()
 		frames[i] = malloc(ccameraGetFrameSize());
 		assert(frames[i]);
 		ccameraGetFrame(frames[i]);
+		usleep(1000000 / CAMERA_FPS);
 	}
 
+	fNewScratch = malloc(sizeof(*fNew) * cFNewMax);
+	assert(fNewScratch);
 	fNew = malloc(sizeof(*fNew) * cFNewMax);
 	assert(fNew);
 	for (int i = 0; i < cFNewMax; i++) {
@@ -106,19 +159,36 @@ static void destroy()
 		free(fNew[i]);
 	}
 	free(fNew);
+
+	free(fNewScratch);
 }
 
 static struct state startingMain()
 {
-	videoStart("/tmp/5s");
+	char *fName_ro = "/tmp/rep?";
+	int fNameLen = strlen(fName_ro);
+	char *fName_rw = malloc(sizeof(char) * (fNameLen+1));
+	strcpy(fName_rw, fName_ro);
 
-	pthread_mutex_lock(&mutFrames);
-	for (int i = 0; i < cFrames; i++) {
-		assert(videoEncodeFrame(frames[i]));
+	for (int iRep = 0; iRep < 5; iRep++) {
+		char *digits = "123456789";
+		fName_rw[fNameLen - 1] = digits[iRep];
+
+		printf("Doing rep %d\n", iRep);
+		videoStart(fName_rw);
+
+		pthread_mutex_lock(&mutFrames);
+		for (int iFrame = 0; iFrame < cFrames; iFrame++) {
+			assert(videoEncodeFrame(frames[iFrame]));
+		}
+		pthread_mutex_unlock(&mutFrames);
+
+		videoStop();
+
+		usleep(US_DELAY_MOVE*2);
 	}
-	pthread_mutex_unlock(&mutFrames);
 
-	videoStop();
+	free(fName_rw);
 
 	return STATE_EXIT;
 }
