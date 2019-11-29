@@ -143,13 +143,14 @@ static void initialize()
 	}
 	cFNew = 0;
 
+	done = false;
+
 	fail = pthread_create(&thdRead, NULL, &readMain, NULL);
 	assert(!fail);
 
 	fail = pthread_create(&thdMove, NULL, &moveMain, NULL);
 	assert(!fail);
 
-	done = false;
 }
 
 static void destroy()
