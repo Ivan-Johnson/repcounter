@@ -8,6 +8,7 @@
 #include "camera.h"
 #include "ccamera.h"
 #include "state.h"
+#include "state_counting.h"
 #include "video.h"
 
 
@@ -246,16 +247,21 @@ static struct state startingMain()
 		}
 	}
 
-	// TODO: compute bounding box
+	// TODO: don't just use `frames`, also return everything in `fNew`
 
-	free(dScratch);
+	struct argsCounting *args = malloc(sizeof(struct argsCounting));
+	args->frames = frames;
+	args->frameAverages = dScratch;
+	args->cFrames = cFrames;
+
+	struct state next = STATE_COUNTING;
+	next.args = args;
+	next.shouldFreeArgs = true;
 
 	done = true;
 	pthread_mutex_unlock(&mutFrames);
 
-	// TODO return correct state, with correct args
-
-	return STATE_EXIT;
+	return next;
 }
 
 struct state runStarting(char **err_msg, int *retStatus)

@@ -1,6 +1,7 @@
 
 
 #include "state.h"
+#include "state_counting.h"
 
 struct state runCounting(char **err_msg, int *ret)
 {
