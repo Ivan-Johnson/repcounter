@@ -18,7 +18,7 @@ struct state runRecording(char **err_msg, int *retStatus)
 	unsigned long long tStart = getTimeInMs();
 	uint16_t *frame = NULL;
 	if (FVIDEO) {
-		assert(videoStart(FVIDEO));
+		assert(!videoStart(FVIDEO));
 		frame = malloc(ccameraGetFrameSize());
 		assert(frame);
 	}
@@ -26,14 +26,14 @@ struct state runRecording(char **err_msg, int *retStatus)
 	while (getTimeInMs() - tStart < DURATION) {
 		if (FVIDEO) {
 			ccameraGetFrame(frame);
-			assert(videoEncodeFrame(frame));
+			assert(!videoEncodeFrame(frame));
 		}
 
 		usleep(100000); // 100ms
 	}
 
 	if (FVIDEO) {
-		assert(videoStop());
+		assert(!videoStop());
 	}
 
 	return STATE_EXIT;

@@ -51,29 +51,31 @@ uint8_t endcode[] = { 0, 0, 1, 0xb7 };
 AVFrame *frame;
 int iFrame;
 
-static void encode(AVFrame *frame)
+static int encode(AVFrame *frame)
 {
 	int ret;
 
 	/* send the frame to the encoder */
 	ret = avcodec_send_frame(ctx, frame);
 	if (ret < 0) {
-		fprintf(stderr, "Error sending a frame for encoding\n");
-		exit(1);
+		return ret;
 	}
 
 	while (ret >= 0) {
 		ret = avcodec_receive_packet(ctx, pkt);
-		if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
-			return;
-		else if (ret < 0) {
-			fprintf(stderr, "Error during encoding\n");
-			exit(1);
+		if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
+			ret = 0;
+			break;
+		} else if (ret < 0) {
+			ret = 1;
+			break;
 		}
 
 		fwrite(pkt->data, 1, pkt->size, outfile);
 		av_packet_unref(pkt);
 	}
+
+	return ret;
 }
 
 static int prepEncode()
@@ -92,9 +94,11 @@ int videoEncodeColor(float tmp)
 	assert(0 <= tmp && tmp <= 1);
 	uint8_t color = (uint8_t) (tmp * UINT8_MAX);
 
-	int fail = prepEncode();
+	int fail;
+
+	fail = prepEncode();
 	if (fail) {
-		return 1;
+		goto DONE;
 	}
 
 	for (int y = 0; y < ctx->height; y++) {
@@ -106,26 +110,23 @@ int videoEncodeColor(float tmp)
 	frame->pts = iFrame;
 	iFrame++;
 
-	/* encode the image */
-	encode(frame);
-
-	return 0;
+	fail = encode(frame);
+DONE:
+	return fail;
 }
 
-bool videoEncodeFrame(uint16_t *data)
+int videoEncodeFrame(uint16_t *data)
 {
 	int fail;
 
 	fail = prepEncode();
 	if (fail) {
-		return false;
+		goto DONE;
 	}
 
 	// Choosen arbitrarily for one particular situation.
 	// TODO: does this value yield good performance in general?
 	uint16_t inputMax = 4000;
-
-	//UINT8_MAX
 
 	for (int y = 0; y < ctx->height; y++) {
 		for (int x = 0; x < ctx->width; x++) {
@@ -147,34 +148,35 @@ bool videoEncodeFrame(uint16_t *data)
 	frame->pts = iFrame;
 	iFrame++;
 
-	/* encode the image */
-	encode(frame);
+	fail = encode(frame);
 
-	return true;
+DONE:
+	return fail;
 }
 
-bool videoStart(char *filename)
+int videoStart(char *filename)
 {
-	int ret;
+	int fail;
 
 	char *codec_name = "mpeg2video";
 	iFrame = 0;
 
 	codec = avcodec_find_encoder_by_name(codec_name);
 	if (!codec) {
-		fprintf(stderr, "Codec '%s' not found\n", codec_name);
-		goto FAIL;
+		fail = 1;
+		goto DONE;
 	}
 
 	ctx = avcodec_alloc_context3(codec);
 	if (!ctx) {
-		fprintf(stderr, "Could not allocate video codec context\n");
-		goto FAIL;
+		fail = 1;
+		goto DONE;
 	}
 
 	pkt = av_packet_alloc();
 	if (!pkt) {
-		goto FAIL;
+		fail = 1;
+		goto DONE;
 	}
 
 	/* put sample parameters */
@@ -198,22 +200,22 @@ bool videoStart(char *filename)
 	ctx->pix_fmt = AV_PIX_FMT_YUV420P;
 
 	/* open it */
-	ret = avcodec_open2(ctx, codec, NULL);
+	int ret = avcodec_open2(ctx, codec, NULL);
 	if (ret < 0) {
-		fprintf(stderr, "Could not open codec: %s\n", av_err2str(ret));
-		goto FAIL;
+		fail = 1;
+		goto DONE;
 	}
 
 	outfile = fopen(filename, "wb");
 	if (!outfile) {
-		fprintf(stderr, "Could not open %s\n", filename);
-		goto FAIL;
+		fail = 1;
+		goto DONE;
 	}
 
 	frame = av_frame_alloc();
 	if (!frame) {
-		fprintf(stderr, "Could not allocate video frame\n");
-		goto FAIL;
+		fail = 1;
+		goto DONE;
 	}
 	frame->format = ctx->pix_fmt;
 	frame->width  = ctx->width;
@@ -221,8 +223,8 @@ bool videoStart(char *filename)
 
 	ret = av_frame_get_buffer(frame, 32);
 	if (ret < 0) {
-		fprintf(stderr, "Could not allocate the video frame data\n");
-		goto FAIL;
+		fail = 1;
+		goto DONE;
 	}
 
 	// note that Cb & Cr have half the dimensions of Y.
@@ -235,14 +237,15 @@ bool videoStart(char *filename)
 		}
 	}
 
-	return true;
-
-FAIL:
-	videoStop();
-	return false;
+	fail = 0;
+DONE:
+	if (fail) {
+		videoStop();
+	}
+	return fail;
 }
 
-bool videoStop()
+int videoStop()
 {
 	/* flush the encoder */
 	encode(NULL);
@@ -256,5 +259,5 @@ bool videoStop()
 	av_frame_free(&frame);
 	av_packet_free(&pkt);
 
-	return true;
+	return 0;
 }
