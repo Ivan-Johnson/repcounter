@@ -18,8 +18,6 @@
 static uint16_t **frames;
 static const unsigned int cFrames = CAMERA_FPS * 5; // # of frames in `frames`.
 static pthread_mutex_t mutFrames = PTHREAD_ERRORCHECK_MUTEX_INITIALIZER_NP;
-static uint16_t **framesScratch;
-static const unsigned int cFramesScratch = 1;
 // how far away from the average must you go before it counts as a up or a down.
 static const double minDeviation = 8;
 // how many reps have to be detected to be considered activated
@@ -67,6 +65,7 @@ static void* readMain(void *none)
 
 static void* moveMain(void* none)
 {
+	// TODO: malloc/free fNewScratch here, not globally
 	while (!done) {
 		usleep(US_DELAY_MOVE);
 
@@ -133,12 +132,6 @@ static void initialize()
 		usleep(1000000 / CAMERA_FPS);
 	}
 
-	framesScratch = malloc(sizeof(*frames) * cFramesScratch);
-	for (int ii = 0; ii < cFramesScratch; ii++) {
-		framesScratch[ii] = malloc(ccameraGetFrameSize());
-		assert(framesScratch[ii]);
-	}
-
 	fNewScratch = malloc(sizeof(*fNew) * cFNewMax);
 	assert(fNewScratch);
 	fNew = malloc(sizeof(*fNew) * cFNewMax);
@@ -169,11 +162,6 @@ static void destroy()
 
 	assert(!pthread_mutex_destroy(&mutFNew));
 	assert(!pthread_mutex_destroy(&mutFrames));
-
-	for (int ii = 0; ii < cFramesScratch; ii++) {
-		free(framesScratch[ii]);
-	}
-	free(framesScratch);
 
 	for (int i = 0; i < cFrames; i++) {
 		free(frames[i]);
