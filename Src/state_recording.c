@@ -18,7 +18,7 @@ struct state runRecording(char **err_msg, int *retStatus)
 	unsigned long long tStart = getTimeInMs();
 	uint16_t *frame = NULL;
 	if (FVIDEO) {
-		videoStart(FVIDEO);
+		assert(videoStart(FVIDEO));
 		frame = malloc(ccameraGetFrameSize());
 		assert(frame);
 	}
@@ -33,7 +33,7 @@ struct state runRecording(char **err_msg, int *retStatus)
 	}
 
 	if (FVIDEO) {
-		videoStop();
+		assert(videoStop());
 	}
 
 	return STATE_EXIT;
