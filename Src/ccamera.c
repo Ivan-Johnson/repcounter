@@ -223,3 +223,16 @@ void ccameraGetFrames(uint16_t* outNew, uint16_t* outOld)
 
 	assert(!pthread_mutex_unlock(&mutRecent));
 }
+
+void ccameraComputeFrameAverages(uint16_t** frames, unsigned int cFrames, double *averages)
+{
+	int cPixels = ccameraGetNumPixels();
+
+	for (unsigned int iF = 0; iF < cFrames; iF++) {
+		double total = 0;
+		for (unsigned int iP = 0; iP < cPixels; iP++) {
+			total += frames[iF][iP];
+		}
+		averages[iF] = total / cPixels;
+	}
+}
