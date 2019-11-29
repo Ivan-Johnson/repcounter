@@ -76,13 +76,49 @@ static void encode(AVFrame *frame)
 	}
 }
 
-bool videoEncodeFrame(uint16_t *data)
+static int prepEncode()
 {
 	int ret;
 	/* make sure the frame data is writable */
 	ret = av_frame_make_writable(frame);
 	if (ret < 0) {
-		goto FAIL;
+		return 1;
+	}
+	return 0;
+}
+
+int videoEncodeColor(float tmp)
+{
+	assert(0 <= tmp && tmp <= 1);
+	uint8_t color = (uint8_t) (tmp * UINT8_MAX);
+
+	int fail = prepEncode();
+	if (fail) {
+		return 1;
+	}
+
+	for (int y = 0; y < ctx->height; y++) {
+		for (int x = 0; x < ctx->width; x++) {
+			frame->data[0][y * frame->linesize[0] + x] = color; // Y
+		}
+	}
+
+	frame->pts = iFrame;
+	iFrame++;
+
+	/* encode the image */
+	encode(frame);
+
+	return 0;
+}
+
+bool videoEncodeFrame(uint16_t *data)
+{
+	int fail;
+
+	fail = prepEncode();
+	if (fail) {
+		return false;
 	}
 
 	// Choosen arbitrarily for one particular situation.
@@ -115,8 +151,6 @@ bool videoEncodeFrame(uint16_t *data)
 	encode(frame);
 
 	return true;
-FAIL:
-	return false;
 }
 
 bool videoStart(char *filename)
