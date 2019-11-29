@@ -98,7 +98,7 @@ bool videoEncodeFrame(uint16_t *data)
 			// clip to max
 			value = value <= inputMax ? value : inputMax;
 
-			// scale to uint8_t
+			// scale to uint8_t so that it fits in ffmpeg frame
 			value = (uint16_t) (value * ((float) UINT8_MAX / inputMax));
 
 			// invert colors
