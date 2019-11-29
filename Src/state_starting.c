@@ -264,7 +264,7 @@ static struct state startingMain()
 	return next;
 }
 
-struct state runStarting(char **err_msg, int *retStatus)
+struct state runStarting(void *args, char **err_msg, int *retStatus)
 {
 	initialize();
 

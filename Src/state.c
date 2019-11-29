@@ -6,7 +6,7 @@
 
 #include "state.h"
 
-struct state runError(char **err, int *ret)
+struct state runError(void *args, char **err, int *ret)
 {
 	puts(*err);
 	*err = NULL;
@@ -41,7 +41,7 @@ int stateRun()
 			return ret;
 		}
 
-		struct state state_new = state.function(&err, &ret);
+		struct state state_new = state.function(state.args, &err, &ret);
 		if (state.shouldFreeArgs) {
 			free(state.args);
 		}

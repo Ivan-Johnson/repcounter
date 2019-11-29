@@ -13,7 +13,7 @@
 // NULL to not record
 #define FVIDEO NULL
 
-struct state runRecording(char **err_msg, int *retStatus)
+struct state runRecording(void *args, char **err_msg, int *retStatus)
 {
 	unsigned long long tStart = getTimeInMs();
 	uint16_t *frame = NULL;

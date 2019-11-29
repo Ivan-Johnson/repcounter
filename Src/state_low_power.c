@@ -10,7 +10,7 @@
 #include "helper.h"
 #include "state.h"
 
-struct state runLowPower (char **err_msg, int *ret)
+struct state runLowPower (void *args, char **err_msg, int *ret)
 {
 	int numPixels = ccameraGetNumPixels();
 	struct state stateNext = STATE_STARTING;
