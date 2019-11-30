@@ -184,35 +184,36 @@ static void drawBox(uint16_t *frame, uint16_t color, struct box box)
 	}
 }
 
-static void initializeBox(struct argsCounting *args)
+// find the first local min & local max of avgs
+static void findFirstExtremePair(double *avgs, unsigned int cFrames, unsigned int *iMin, unsigned int *iMax)
 {
-	unsigned int tmpLow  = findNextLow (args->frameAverages, args->cFrames, 0);
-	unsigned int tmpHigh = findNextHigh(args->frameAverages, args->cFrames, 0);
-
-	unsigned int iMax, iMin;
+	unsigned int tmpLow  = findNextLow (avgs, cFrames, 0);
+	unsigned int tmpHigh = findNextHigh(avgs, cFrames, 0);
 
 	if (tmpLow < tmpHigh) { // todo: cleanup. If I used findExtreme instead, these two would probably be ~duplicate code.
-		iMin    = findMin(args->frameAverages, args->cFrames, tmpLow, tmpHigh);
-		tmpLow  = findNextLow (args->frameAverages, args->cFrames, tmpHigh);
-		iMax    = findMax(args->frameAverages, args->cFrames, tmpHigh, tmpLow);
+		*iMin   = findMin(avgs, cFrames, tmpLow, tmpHigh);
+		tmpLow  = findNextLow (avgs, cFrames, tmpHigh);
+		*iMax   = findMax(avgs, cFrames, tmpHigh, tmpLow);
 	} else {
-		iMax    = findMax(args->frameAverages, args->cFrames, tmpHigh, tmpLow);
-		tmpHigh = findNextHigh(args->frameAverages, args->cFrames, tmpLow);
-		iMin    = findMin(args->frameAverages, args->cFrames, tmpLow, tmpHigh);
+		*iMax   = findMax(avgs, cFrames, tmpHigh, tmpLow);
+		tmpHigh = findNextHigh(avgs, cFrames, tmpLow);
+		*iMin   = findMin(avgs, cFrames, tmpLow, tmpHigh);
 	}
+}
 
-
+static void initializeBox(struct argsCounting *args, uint16_t *fMin, uint16_t *fMax)
+{
 	assert(!videoStart("/tmp/box"));
 	uint16_t *fScratch = malloc(ccameraGetFrameSize());
 	assert(fScratch);
 	for (unsigned int ii = 0; ii < 50; ii++) {
-		assert(!videoEncodeFrame(args->frames[iMax]));
+		assert(!videoEncodeFrame(fMax));
 	}
 
 	int numPixels = ccameraGetNumPixels();
 	int *delta = malloc(sizeof(int*) * numPixels);
 	for (unsigned int ii = 0; ii < numPixels; ii++) {
-		delta[ii] = args->frames[iMax][ii] - args->frames[iMin][ii];
+		delta[ii] = fMax[ii] - fMin[ii];
 	}
 
 	struct box boxBest;
@@ -238,7 +239,7 @@ static void initializeBox(struct argsCounting *args)
 
 
 		// TODO: print delta, not a normal frame.
-		ccameraCopyFrame(args->frames[iMax], fScratch);
+		ccameraCopyFrame(fMax, fScratch);
 		drawBox(fScratch, UINT16_MAX, boxBest);
 		drawBox(fScratch, 0, boxNew);
 		assert(!videoEncodeFrame(fScratch));
@@ -252,7 +253,7 @@ static void initializeBox(struct argsCounting *args)
 		}
 	}
 
-	ccameraCopyFrame(args->frames[iMax], fScratch);
+	ccameraCopyFrame(fMax, fScratch);
 	drawBox(fScratch, UINT16_MAX, boxBest);
 	for (unsigned int ii = 0; ii < 50; ii++) {
 		assert(!videoEncodeFrame(fScratch));
@@ -282,7 +283,9 @@ static void initialize(struct argsCounting *args)
 
 	// It's important that these are done AFTER starting `thdRead`,
 	// otherwise we'll miss frames
-	initializeBox(args);
+	unsigned int iMin, iMax;
+	findFirstExtremePair(args->frameAverages, args->cFrames, &iMin, &iMax);
+	initializeBox(args, args->frames[iMin], args->frames[iMax]);
 }
 
 static void destroy()
