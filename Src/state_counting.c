@@ -199,6 +199,9 @@ static void initializeBox(struct argsCounting *args)
 	assert(!videoStart("/tmp/box"));
 	uint16_t *fScratch = malloc(ccameraGetFrameSize());
 	assert(fScratch);
+	for (unsigned int ii = 0; ii < 50; ii++) {
+		assert(!videoEncodeFrame(args->frames[iMax]));
+	}
 
 	int numPixels = ccameraGetNumPixels();
 	int *delta = malloc(sizeof(int*) * numPixels);
@@ -237,8 +240,16 @@ static void initializeBox(struct argsCounting *args)
 			lastShrink = 0;
 		}
 	}
+
+	ccameraCopyFrame(args->frames[iMax], fScratch);
+	drawBox(fScratch, UINT16_MAX, boxBest);
+	for (unsigned int ii = 0; ii < 50; ii++) {
+		assert(!videoEncodeFrame(fScratch));
+	}
+
 	free(delta);
 	free(fScratch);
+
 	assert(!videoStop());
 
 	box = boxBest;
