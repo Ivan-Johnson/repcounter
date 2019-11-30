@@ -108,21 +108,15 @@ static unsigned int findMin(double *avgs, unsigned int cFrames, unsigned int sta
 static double computeUtil(int *frame, struct box box)
 {
 	unsigned int width = ccameraGetFrameWidth();
-	unsigned int tmp = 0; // TODO: delete after passing test
 	double total = 0;
 
 	for (unsigned int iY = box.yMin; iY < box.yMax; iY++) {
 		for (unsigned int iX = box.xMin; iX < box.xMax; iX++) {
 			total += frame[iY*width + iX];
-			tmp++;
 		}
 	}
 
 	unsigned int numPixels = (box.yMax - box.yMin) * (box.xMax - box.xMin);
-	if (numPixels != tmp) {
-		printf("{%d, %d}, {%d, %d}, %d, %d\n", box.xMin, box.yMin, box.xMax, box.yMax, numPixels, tmp);
-		assert(false);
-	}
 	return total / numPixels;
 }
 
