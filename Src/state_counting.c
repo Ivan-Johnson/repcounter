@@ -221,7 +221,12 @@ static void initializeBox(struct argsCounting *args)
 	unsigned int lastShrink = 0;
 	while(lastShrink < 10) { // arbitrary
 		lastShrink++;
+		// todo: use a slightly less greedy algorithm. Examine all four
+		// shrink directions, and choose the one that gets the best result.
 
+		// todo: instead of using static variables & special reset
+		// parameter, just pass `lastShrink`. %4 to get direction, /4 to
+		// get magnitude.
 		struct box boxNew = nextShrink(boxBest, false);
 		double utilNew = computeUtil(delta, boxNew);
 
