@@ -165,11 +165,6 @@ static void destroy()
 	assert(!pthread_mutex_destroy(&mutFNew));
 	assert(!pthread_mutex_destroy(&mutFrames));
 
-	for (int i = 0; i < cFrames; i++) {
-		free(frames[i]);
-	}
-	free(frames);
-
 	for (int i = 0; i < cFNewMax; i++) {
 		free(fNew[i]);
 	}
