@@ -186,15 +186,21 @@ static void drawBox(uint16_t *frame, uint16_t color, struct box box)
 
 static void initializeBox(struct argsCounting *args)
 {
-	unsigned int iLow1  = findNextLow (args->frameAverages, args->cFrames, 0);
-	unsigned int iHigh1 = findNextHigh(args->frameAverages, args->cFrames, iLow1);
-	unsigned int iLow2  = findNextLow (args->frameAverages, args->cFrames, iHigh1);
-	unsigned int iHigh2 = findNextHigh(args->frameAverages, args->cFrames, iLow2);
+	unsigned int tmpLow  = findNextLow (args->frameAverages, args->cFrames, 0);
+	unsigned int tmpHigh = findNextHigh(args->frameAverages, args->cFrames, 0);
 
-	// todo: optimize. Should be able to find a max between iHigh1 & iLow2?
-	// Similar for min.
-	unsigned int iMax = findMax(args->frameAverages, args->cFrames, iLow1, iLow2);
-	unsigned int iMin = findMin(args->frameAverages, args->cFrames, iHigh1, iHigh2);
+	unsigned int iMax, iMin;
+
+	if (tmpLow < tmpHigh) { // todo: cleanup. If I used findExtreme instead, these two would probably be ~duplicate code.
+		iMin    = findMin(args->frameAverages, args->cFrames, tmpLow, tmpHigh);
+		tmpLow  = findNextLow (args->frameAverages, args->cFrames, tmpHigh);
+		iMax    = findMax(args->frameAverages, args->cFrames, tmpHigh, tmpLow);
+	} else {
+		iMax    = findMax(args->frameAverages, args->cFrames, tmpHigh, tmpLow);
+		tmpHigh = findNextHigh(args->frameAverages, args->cFrames, tmpLow);
+		iMin    = findMin(args->frameAverages, args->cFrames, tmpLow, tmpHigh);
+	}
+
 
 	assert(!videoStart("/tmp/box"));
 	uint16_t *fScratch = malloc(ccameraGetFrameSize());
