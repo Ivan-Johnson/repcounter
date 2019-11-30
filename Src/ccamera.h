@@ -17,7 +17,11 @@ int ccameraGetFrameHeight();
 int ccameraGetNumPixels();
 size_t ccameraGetFrameSize();
 
-uint16_t ccameraGetPixelFromFrame(uint16_t *frame, size_t x, size_t y);
+static uint16_t ccameraGetPixelFromFrame(uint16_t *frame, size_t x, size_t y) __attribute__((unused));
+static uint16_t ccameraGetPixelFromFrame(uint16_t *frame, size_t x, size_t y)
+{
+	return frame[y*ccameraGetFrameWidth() + x];
+}
 
 void ccameraGetFrame(uint16_t* frameOut);
 void ccameraGetFrames(uint16_t* frameNew, uint16_t* frameOld);

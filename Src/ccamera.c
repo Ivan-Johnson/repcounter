@@ -29,11 +29,6 @@ static pthread_mutex_t mutRecent = PTHREAD_ERRORCHECK_MUTEX_INITIALIZER_NP;
 static pthread_t background;
 static bool stopRequested;
 
-uint16_t ccameraGetPixelFromFrame(uint16_t *frame, size_t x, size_t y)
-{
-	return frame[y*ccameraGetFrameWidth() + x];
-}
-
 static void *backgroundMain(void *);
 
 int ccameraInit(struct args args)
