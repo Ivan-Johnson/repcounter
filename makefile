@@ -39,6 +39,8 @@ CFLAGS += -Wfatal-errors -std=c99
 #more lenient. This value can be modified here, or make can be run as follows:
 #
 #make <target> STRICT=<value>
+
+#TODO: why isn't this more strict?
 STRICT ?= 2
 
 ifeq ($(shell test $(STRICT) -le 2; echo $$?),0)

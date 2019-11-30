@@ -205,11 +205,6 @@ static struct state startingMain()
 			continue;
 		}
 
-		// TODO: this is a terrible system. It doesn't account for the
-		// target taking up different fractions of the FOV. Normal
-		// pushups when the camera is on my bedroom shelf are typically
-		// 20 to 30.
-
 		// Within this time sequence, find out how many times we went
 		// from being more than minDeviation above to being more than
 		// minDeviation below.
@@ -243,7 +238,7 @@ static struct state startingMain()
 		}
 	}
 
-	// TODO: don't just use `frames`, also return everything in `fNew`
+	// TODO TODO TODO: don't just use `frames`, also return everything in `fNew`
 
 	struct argsCounting *args = malloc(sizeof(struct argsCounting));
 	args->frames = frames;
