@@ -105,7 +105,7 @@ static unsigned int findMin(double *avgs, unsigned int cFrames, unsigned int sta
 	return findExtreme(avgs, cFrames, start, end, false);
 }
 
-static double computeUtil(int *frame, struct box box)
+static double avgInBox(int *frame, struct box box)
 {
 	unsigned int width = ccameraGetFrameWidth();
 	double total = 0;
@@ -216,7 +216,7 @@ static void initializeBox(struct argsCounting *args, uint16_t *fMin, uint16_t *f
 	boxBest.yMax = ccameraGetFrameHeight() - 1;
 	boxBest.yMin = 0;
 
-	double utilBest = computeUtil(delta, boxBest);
+	double utilBest = avgInBox(delta, boxBest);
 
 	nextShrink(boxBest, true);
 	unsigned int lastShrink = 0;
@@ -229,7 +229,7 @@ static void initializeBox(struct argsCounting *args, uint16_t *fMin, uint16_t *f
 		// parameter, just pass `lastShrink`. %4 to get direction, /4 to
 		// get magnitude.
 		struct box boxNew = nextShrink(boxBest, false);
-		double utilNew = computeUtil(delta, boxNew);
+		double utilNew = avgInBox(delta, boxNew);
 
 
 		// TODO: print delta, not a normal frame.
