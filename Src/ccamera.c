@@ -213,8 +213,8 @@ void ccameraGetFrames(uint16_t* outNew, uint16_t* outOld)
 {
 	assert(!pthread_mutex_lock(&mutRecent));
 
-	memcpy(outNew, frameNew, ccameraGetFrameSize());
-	memcpy(outOld, frameOld, ccameraGetFrameSize());
+	ccameraCopyFrame(frameNew, outNew);
+	ccameraCopyFrame(frameOld, outOld);
 
 	assert(!pthread_mutex_unlock(&mutRecent));
 }

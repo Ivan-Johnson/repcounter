@@ -20,7 +20,7 @@ static uint16_t **frames;
 static const unsigned int cFrames = CAMERA_FPS * 5; // # of frames in `frames`.
 static pthread_mutex_t mutFrames = PTHREAD_ERRORCHECK_MUTEX_INITIALIZER_NP;
 // how far away from the average must you go before it counts as a up or a down.
-static const double minDeviation = 8;
+static const double minDeviation = 8; // TODO: unduplicate with state_counting#findNext#thresh
 // how many reps have to be detected to be considered activated
 static const unsigned int repThreshold = 2;
 
