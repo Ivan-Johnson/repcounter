@@ -71,7 +71,10 @@ static int encode(AVFrame *frame)
 			break;
 		}
 
-		fwrite(pkt->data, 1, pkt->size, outfile);
+		int tmp = pkt->size;
+		assert(tmp > 0);
+		size_t size = (size_t) tmp;
+		fwrite(pkt->data, 1, size, outfile);
 		av_packet_unref(pkt);
 	}
 
@@ -135,12 +138,12 @@ int videoEncodeFrame(uint16_t *data)
 			value = value <= inputMax ? value : inputMax;
 
 			// scale to uint8_t so that it fits in ffmpeg frame
-			value = (uint16_t) (value * ((float) UINT8_MAX / inputMax));
+			uint8_t small = (uint8_t) (value * ((float) UINT8_MAX / inputMax));
 
 			// invert colors
-			value = UINT8_MAX - value;
+			small = (uint8_t) (UINT8_MAX - small);
 
-			frame->data[0][y * frame->linesize[0] + x] = value; // Y
+			frame->data[0][y * frame->linesize[0] + x] = small; // Y
 		}
 	}
 
@@ -181,8 +184,12 @@ int videoStart(char *filename)
 	/* put sample parameters */
 	ctx->bit_rate = 400000;
 	/* resolution must be a multiple of two */
-	ctx->width = ccameraGetFrameWidth();
-	ctx->height = ccameraGetFrameHeight();
+	size_t width = ccameraGetFrameWidth();
+	size_t height = ccameraGetFrameHeight();
+	assert(width < INT_MAX);
+	assert(height < INT_MAX);
+	ctx->width = (int) width;
+	ctx->height = (int) height;
 	/* frames per second */
 	//todo: 25->CAMERA_FPS?
 	ctx->time_base = (AVRational){1, 25};
