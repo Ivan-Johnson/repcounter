@@ -42,7 +42,10 @@ struct state runStarting(void *args, char **err, int *ret);
 struct state runRecording(void *args, char **err_msg, int *retStatus);
 #define STATE_RECORDING ((struct state) { .name="recording", .function=runRecording, .args=NULL, .shouldFreeArgs=false, })
 
-static const struct state ALL_STATES[] = { STATE_EXIT, STATE_ERROR, STATE_LOW_POWER, STATE_STARTING, STATE_COUNTING, STATE_RECORDING };
+struct state runLog(void *a, char **err, int *ret);
+#define STATE_LOG ((struct state) { .name="logging", .function=runLog, .args=NULL, .shouldFreeArgs=false, })
+
+static const struct state ALL_STATES[] = { STATE_EXIT, STATE_ERROR, STATE_LOW_POWER, STATE_STARTING, STATE_COUNTING, STATE_RECORDING, STATE_LOG };
 
 static const size_t NUM_STATES = sizeof(ALL_STATES) / sizeof(struct state);
 #define INITIAL_STATE STATE_LOW_POWER

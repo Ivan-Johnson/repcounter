@@ -10,6 +10,7 @@
 #include "helper.h"
 #include "state.h"
 #include "state_counting.h"
+#include "state_log.h"
 #include "video.h"
 
 // Stores the new frames that have not yet been considered. It is initially
@@ -340,8 +341,7 @@ static void initialize(struct argsCounting *args)
 
 static void destroy()
 {
-	assert(!done);
-	done = true;
+	assert(done);
 
 	struct timespec stop = {time(NULL) + 2, 0}; // todo: tighten this bound
 	assert(!pthread_timedjoin_np(thdRead, NULL, &stop));
@@ -454,5 +454,18 @@ struct state runCounting(void *a, char **err_msg, int *ret)
 
 	destroy();
 	destroyArgs(args);
-	return STATE_EXIT;
+
+	if (!cRep) {
+		return STATE_STARTING;
+	}
+
+	struct argsLog *logArgs = malloc(sizeof(struct argsLog));
+	assert(logArgs);
+	logArgs->cRep = cRep;
+	logArgs->sStop = getTimeInMs() / 1000;
+
+	struct state next = STATE_LOG;
+	next.args = logArgs;
+	next.shouldFreeArgs = true;
+	return next;
 }

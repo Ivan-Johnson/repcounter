@@ -3,6 +3,7 @@
 
 #include <sys/time.h>
 
+// returns the number of milliseconds that have passed since the epoch
 static unsigned long long getTimeInMs()
 {
 	struct timeval currentTime;
