@@ -176,22 +176,19 @@ void *backgroundMain(void *foo)
 }
 
 
-int ccameraGetFrameWidth()
+size_t ccameraGetFrameWidth()
 {
-	int width = cameraGetFrameWidth();
-	return width;
+	return cameraGetFrameWidth();
 }
 
-int ccameraGetFrameHeight()
+size_t ccameraGetFrameHeight()
 {
-	int height = cameraGetFrameHeight();
-	return height;
+	return cameraGetFrameHeight();
 }
 
-int ccameraGetNumPixels()
+size_t ccameraGetNumPixels()
 {
-	int count = ccameraGetFrameWidth() * ccameraGetFrameHeight();
-	return count;
+	return ccameraGetFrameWidth() * ccameraGetFrameHeight();
 }
 
 size_t ccameraGetFrameSize()

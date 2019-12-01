@@ -13,9 +13,9 @@
 int ccameraInit(struct args args);
 int ccameraDestroy();
 
-int ccameraGetFrameWidth();
-int ccameraGetFrameHeight();
-int ccameraGetNumPixels();
+size_t ccameraGetFrameWidth();
+size_t ccameraGetFrameHeight();
+size_t ccameraGetNumPixels();
 size_t ccameraGetFrameSize();
 
 static uint16_t ccameraGetPixelFromFrame(uint16_t *frame, size_t x, size_t y) __attribute__((unused));

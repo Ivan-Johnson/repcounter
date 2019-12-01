@@ -27,8 +27,8 @@ void print_error(rs2_error* e)
 }
 
 struct objs objs;
-int frame_width = 0;
-int frame_height = 0;
+size_t frame_width = 0;
+size_t frame_height = 0;
 
 bool initializeWithFirstDevice(struct args args)
 {
@@ -115,10 +115,14 @@ bool initializeWithFirstDevice(struct args args)
 		goto FAIL;
 	}
 
-	rs2_get_video_stream_resolution(objs.stream_profile, &frame_width, &frame_height, &objs.err);
+	int tmpWidth, tmpHeight;
+	rs2_get_video_stream_resolution(objs.stream_profile, &tmpWidth, &tmpHeight, &objs.err);
 	if (objs.err) {
 		goto FAIL;
 	}
+	assert(tmpWidth > 0 && tmpHeight > 0);
+	frame_width = tmpWidth;
+	frame_height = tmpHeight;
 
 	return true;
 FAIL:
@@ -214,13 +218,13 @@ DONE:
 	return fail;
 }
 
-int cameraGetFrameWidth()
+size_t cameraGetFrameWidth()
 {
 	assert(frame_width != 0);
 	return frame_width;
 }
 
-int cameraGetFrameHeight()
+size_t cameraGetFrameHeight()
 {
 	assert(frame_width != 0);
 	return frame_height;
