@@ -226,6 +226,18 @@ static void findFirstExtremePair(double *avgs, unsigned int cFrames, unsigned in
 	}
 }
 
+// f1 - f2 -> fOut, but only for the pixels in box
+static void boxSubtraction(uint16_t *f1, uint16_t *f2, int *fOut, struct box box)
+{
+	unsigned int fWidth = ccameraGetFrameWidth(); // width of the FRAME, not box.
+	for (unsigned int iY = box.yMin; iY < box.yMax; iY++) {
+		for (unsigned int iX = box.xMin; iX < box.xMax; iX++) {
+			unsigned int ii = iY*fWidth + iX;
+			fOut[ii] = f1[ii] - f2[ii];
+		}
+	}
+}
+
 static void initializeBox(struct argsCounting *args, uint16_t *fMin, uint16_t *fMax)
 {
 	assert(!videoStart("/tmp/box"));
@@ -235,17 +247,16 @@ static void initializeBox(struct argsCounting *args, uint16_t *fMin, uint16_t *f
 		assert(!videoEncodeFrame(fMax));
 	}
 
-	int numPixels = ccameraGetNumPixels();
-	int *delta = malloc(sizeof(int*) * numPixels);
-	for (unsigned int ii = 0; ii < numPixels; ii++) {
-		delta[ii] = fMax[ii] - fMin[ii];
-	}
-
 	struct box boxBest;
 	boxBest.xMax = ccameraGetFrameWidth();
 	boxBest.xMin = 0;
 	boxBest.yMax = ccameraGetFrameHeight();
 	boxBest.yMin = 0;
+
+	int numPixels = ccameraGetNumPixels();
+	int *delta = malloc(sizeof(int*) * numPixels);
+	assert(delta);
+	boxSubtraction(fMax, fMin, delta, boxBest);
 
 	double utilBest = avgInBoxInt(delta, boxBest);
 
