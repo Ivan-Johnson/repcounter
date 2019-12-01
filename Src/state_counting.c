@@ -196,7 +196,7 @@ static struct box nextShrink(struct box box, bool reset)
 	return box;
 }
 
-static void drawBox(uint16_t *frame, uint16_t color, struct box box)
+static __attribute__((unused)) void drawBox(uint16_t *frame, uint16_t color, struct box box)
 {
 	unsigned int width = ccameraGetFrameWidth();
 
@@ -244,13 +244,6 @@ static void boxSubtraction(uint16_t *f1, uint16_t *f2, int *fOut, struct box box
 
 static void initializeBox(struct argsCounting *args, uint16_t *fMin, uint16_t *fMax)
 {
-	assert(!videoStart("/tmp/box"));
-	uint16_t *fScratch = malloc(ccameraGetFrameSize());
-	assert(fScratch);
-	for (unsigned int ii = 0; ii < 50; ii++) {
-		assert(!videoEncodeFrame(fMax));
-	}
-
 	struct box boxBest;
 	boxBest.xMax = ccameraGetFrameWidth();
 	boxBest.xMin = 0;
@@ -278,12 +271,6 @@ static void initializeBox(struct argsCounting *args, uint16_t *fMin, uint16_t *f
 		double utilNew = avgInBoxInt(delta, boxNew);
 
 
-		// TODO: print delta, not a normal frame.
-		ccameraCopyFrame(fMax, fScratch);
-		drawBox(fScratch, UINT16_MAX, boxBest);
-		drawBox(fScratch, 0, boxNew);
-		assert(!videoEncodeFrame(fScratch));
-
 		double fracChange = utilNew / utilBest;
 		if (fracChange >= 1.20) {
 			nextShrink(boxBest, true);
@@ -293,16 +280,7 @@ static void initializeBox(struct argsCounting *args, uint16_t *fMin, uint16_t *f
 		}
 	}
 
-	ccameraCopyFrame(fMax, fScratch);
-	drawBox(fScratch, UINT16_MAX, boxBest);
-	for (unsigned int ii = 0; ii < 50; ii++) {
-		assert(!videoEncodeFrame(fScratch));
-	}
-
 	free(delta);
-	free(fScratch);
-
-	assert(!videoStop());
 
 	box = boxBest;
 }
