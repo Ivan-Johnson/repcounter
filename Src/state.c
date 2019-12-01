@@ -9,6 +9,9 @@
 
 struct state runError(void *args, char **err, int *ret)
 {
+	(void) args;
+	(void) ret;
+
 	puts(*err);
 	*err = NULL;
 	return STATE_EXIT;
@@ -21,7 +24,7 @@ bool stateEqual(struct state state1, struct state state2)
 
 bool stateValid(struct state state)
 {
-	for (int tmp = 0; tmp < NUM_STATES; tmp++) {
+	for (unsigned int tmp = 0; tmp < NUM_STATES; tmp++) {
 		if (stateEqual(state, ALL_STATES[tmp])) {
 			return true;
 		}

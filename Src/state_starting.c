@@ -49,15 +49,24 @@ static volatile bool done;
 
 static void* readMain(void *none)
 {
+	(void) none;
+
 	while (!done) {
 		usleep(1000000 / CAMERA_FPS);
 
+		// todo: instead of this convoluted mess of having a second done
+		// check, simply aquire the lock before doing the `done` check
+		// (and release it during sleeps)
 		pthread_mutex_lock(&mutFNew);
+		if (done) {
+			goto CONTINUE;
+		}
 
 		assert(cFNew < cFNewMax);
 		ccameraGetFrame(fNew[cFNew]);
 		cFNew++;
 
+	CONTINUE:
 		pthread_mutex_unlock(&mutFNew);
 	}
 
@@ -66,6 +75,8 @@ static void* readMain(void *none)
 
 static void* moveMain(void* none)
 {
+	(void) none;
+
 	// todo: malloc/free fNewScratch here, not globally
 	while (!done) {
 		usleep(US_DELAY_MOVE);
@@ -126,7 +137,7 @@ static void initialize()
 
 	frames = malloc(sizeof(*frames) * cFrames);
 	assert(frames);
-	for (int i = 0; i < cFrames; i++) {
+	for (size_t i = 0; i < cFrames; i++) {
 		frames[i] = malloc(ccameraGetFrameSize());
 		assert(frames[i]);
 		ccameraGetFrame(frames[i]);
@@ -137,7 +148,7 @@ static void initialize()
 	assert(fNewScratch);
 	fNew = malloc(sizeof(*fNew) * cFNewMax);
 	assert(fNew);
-	for (int i = 0; i < cFNewMax; i++) {
+	for (size_t i = 0; i < cFNewMax; i++) {
 		fNew[i] = malloc(ccameraGetFrameSize());
 		assert(fNew[i]);
 	}
@@ -165,14 +176,14 @@ static void destroy()
 	assert(!pthread_mutex_destroy(&mutFNew));
 	assert(!pthread_mutex_destroy(&mutFrames));
 
-	for (int i = 0; i < cFrames; i++) {
+	for (size_t i = 0; i < cFrames; i++) {
 		if (frames[i] != NULL) {
 			free(frames[i]);
 		}
 	}
 	free(frames);
 
-	for (int i = 0; i < cFNewMax; i++) {
+	for (size_t i = 0; i < cFNewMax; i++) {
 		if (fNew[i] != NULL) {
 			free(fNew[i]);
 		}
@@ -207,7 +218,7 @@ static struct state startingMain()
 		// Find the first frame that differs from the average by at
 		// least minDeviation
 		unsigned int ii = 0;
-		while (fabs(dScratch[ii]) < minDeviation && ii < cFrames) {
+		while (ii < cFrames && fabs(dScratch[ii]) < minDeviation) {
 			ii++;
 		}
 		if (ii == cFrames) {
@@ -282,6 +293,10 @@ static struct state startingMain()
 
 struct state runStarting(void *args, char **err_msg, int *retStatus)
 {
+	(void) args;
+	(void) err_msg;
+	(void) retStatus;
+
 	initialize();
 
 	struct state retState = startingMain();

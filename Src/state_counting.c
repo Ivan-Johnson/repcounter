@@ -44,12 +44,14 @@ static volatile bool done;
 
 // A region of a frame. `Min`s are included, `Max`s are excluded.
 struct box {
-	unsigned int xMin, xMax, yMin, yMax;
+	size_t xMin, xMax, yMin, yMax;
 };
 static struct box box;
 
 static void* readMain(void *none)
 {
+	(void) none;
+
 	while (!done) {
 		usleep(1000000 / CAMERA_FPS);
 
@@ -96,12 +98,12 @@ static unsigned int findNextLow(double *avgs, unsigned int cFrames, unsigned int
 	return findNext(avgs, cFrames, start, false);
 }
 
-static unsigned int findExtreme(double *avgs, unsigned int cFrames, unsigned int start, unsigned int end, bool max)
+static unsigned int findExtreme(double *avgs, unsigned int start, unsigned int end, bool max)
 {
-	unsigned int iExtreme = 0;
+	unsigned int iExtreme = start;
 	double vExtreme = avgs[iExtreme];
 
-	for (unsigned int ii = iExtreme+1; ii < cFrames; ii++) {
+	for (unsigned int ii = iExtreme+1; ii < end; ii++) {
 		double value = avgs[ii];
 		if ((max  && value > vExtreme) ||
 		    (!max && value < vExtreme)) {
@@ -113,46 +115,46 @@ static unsigned int findExtreme(double *avgs, unsigned int cFrames, unsigned int
 	return iExtreme;
 }
 
-static unsigned int findMax(double *avgs, unsigned int cFrames, unsigned int start, unsigned int end)
+static unsigned int findMax(double *avgs, unsigned int start, unsigned int end)
 {
-	return findExtreme(avgs, cFrames, start, end, true);
+	return findExtreme(avgs, start, end, true);
 }
 
-static unsigned int findMin(double *avgs, unsigned int cFrames, unsigned int start, unsigned int end)
+static unsigned int findMin(double *avgs, unsigned int start, unsigned int end)
 {
-	return findExtreme(avgs, cFrames, start, end, false);
+	return findExtreme(avgs, start, end, false);
 }
 
 // todo: duplicate code; avgInBoxInt/avgInBox
 static double avgInBoxInt(int *frame, struct box box)
 {
-	unsigned int width = ccameraGetFrameWidth();
+	size_t width = ccameraGetFrameWidth();
 	double total = 0;
 
-	for (unsigned int iY = box.yMin; iY < box.yMax; iY++) {
-		for (unsigned int iX = box.xMin; iX < box.xMax; iX++) {
+	for (size_t iY = box.yMin; iY < box.yMax; iY++) {
+		for (size_t iX = box.xMin; iX < box.xMax; iX++) {
 			total += frame[iY*width + iX];
 		}
 	}
 
-	unsigned int numPixels = (box.yMax - box.yMin) * (box.xMax - box.xMin);
-	return total / numPixels;
+	size_t numPixels = (box.yMax - box.yMin) * (box.xMax - box.xMin);
+	return total / (double) numPixels;
 }
 
 // todo: duplicate code; avgInBoxInt/avgInBox
 static double avgInBox(uint16_t *frame, struct box box)
 {
-	unsigned int width = ccameraGetFrameWidth();
+	size_t width = ccameraGetFrameWidth();
 	double total = 0;
 
-	for (unsigned int iY = box.yMin; iY < box.yMax; iY++) {
-		for (unsigned int iX = box.xMin; iX < box.xMax; iX++) {
+	for (size_t iY = box.yMin; iY < box.yMax; iY++) {
+		for (size_t iX = box.xMin; iX < box.xMax; iX++) {
 			total += frame[iY*width + iX];
 		}
 	}
 
-	unsigned int numPixels = (box.yMax - box.yMin) * (box.xMax - box.xMin);
-	return total / numPixels;
+	size_t numPixels = (box.yMax - box.yMin) * (box.xMax - box.xMin);
+	return total / (double) numPixels;
 }
 
 // Return a box whose contained pixels are a strict subset of the given box's
@@ -176,16 +178,22 @@ static struct box nextShrink(struct box box, bool reset)
 	bool vertical = dir % 2;
 	bool increaseMin = (dir / 2) % 2;
 
-	unsigned int range = vertical ? box.yMax - box.yMin : box.xMax - box.xMin;
-	unsigned int delta = ceil(range*amount);
-	if (!increaseMin) {
-		delta *= -1;
-	}
+	size_t range = vertical ? box.yMax - box.yMin : box.xMax - box.xMin;
+	double ddelta = ceil((double)range * amount);
+	assert(ddelta < SIZE_MAX);
+	size_t delta = (size_t) ddelta;
 
-	unsigned int *value = vertical ?
+	size_t *value = vertical ?
 		(increaseMin ? &box.yMin : &box.yMax) :
 		(increaseMin ? &box.xMin : &box.xMax);
-	*value += delta;
+	if (!increaseMin) {
+		assert(*value >= delta);
+		*value -= delta;
+	} else {
+		assert(*value <= SIZE_MAX - delta);
+		*value += delta;
+	}
+
 
 	dir++;
 	if (dir % 4 != dir) {
@@ -198,16 +206,16 @@ static struct box nextShrink(struct box box, bool reset)
 
 static __attribute__((unused)) void drawBox(uint16_t *frame, uint16_t color, struct box box)
 {
-	unsigned int width = ccameraGetFrameWidth();
+	size_t width = ccameraGetFrameWidth();
 
 	// draw horizontal lines
-	for (unsigned int iX = box.xMin; iX < box.xMax; iX++) {
+	for (size_t iX = box.xMin; iX < box.xMax; iX++) {
 		frame[width*box.yMin + iX] = color;
 		frame[width*(box.yMax-1) + iX] = color;
 	}
 
 	// draw vertical lines
-	for (unsigned int iY = box.yMin; iY < box.yMax; iY++) {
+	for (size_t iY = box.yMin; iY < box.yMax; iY++) {
 		frame[width*iY + box.xMin] = color;
 		frame[width*iY + (box.xMax-1)] = color;
 	}
@@ -220,29 +228,29 @@ static void findFirstExtremePair(double *avgs, unsigned int cFrames, unsigned in
 	unsigned int tmpHigh = findNextHigh(avgs, cFrames, 0);
 
 	if (tmpLow < tmpHigh) { // todo: cleanup. If I used findExtreme instead, these two would probably be ~duplicate code.
-		*iMin   = findMin(avgs, cFrames, tmpLow, tmpHigh);
+		*iMin   = findMin(avgs, tmpLow, tmpHigh);
 		tmpLow  = findNextLow (avgs, cFrames, tmpHigh);
-		*iMax   = findMax(avgs, cFrames, tmpHigh, tmpLow);
+		*iMax   = findMax(avgs, tmpHigh, tmpLow);
 	} else {
-		*iMax   = findMax(avgs, cFrames, tmpHigh, tmpLow);
+		*iMax   = findMax(avgs, tmpHigh, tmpLow);
 		tmpHigh = findNextHigh(avgs, cFrames, tmpLow);
-		*iMin   = findMin(avgs, cFrames, tmpLow, tmpHigh);
+		*iMin   = findMin(avgs, tmpLow, tmpHigh);
 	}
 }
 
 // f1 - f2 -> fOut, but only for the pixels in box
 static void boxSubtraction(uint16_t *f1, uint16_t *f2, int *fOut, struct box box)
 {
-	unsigned int fWidth = ccameraGetFrameWidth(); // width of the FRAME, not box.
-	for (unsigned int iY = box.yMin; iY < box.yMax; iY++) {
-		for (unsigned int iX = box.xMin; iX < box.xMax; iX++) {
-			unsigned int ii = iY*fWidth + iX;
+	size_t fWidth = ccameraGetFrameWidth(); // width of the FRAME, not box.
+	for (size_t iY = box.yMin; iY < box.yMax; iY++) {
+		for (size_t iX = box.xMin; iX < box.xMax; iX++) {
+			size_t ii = iY*fWidth + iX;
 			fOut[ii] = f1[ii] - f2[ii];
 		}
 	}
 }
 
-static void initializeBox(struct argsCounting *args, uint16_t *fMin, uint16_t *fMax)
+static void initializeBox(uint16_t *fMin, uint16_t *fMax)
 {
 	struct box boxBest;
 	boxBest.xMax = ccameraGetFrameWidth();
@@ -250,7 +258,7 @@ static void initializeBox(struct argsCounting *args, uint16_t *fMin, uint16_t *f
 	boxBest.yMax = ccameraGetFrameHeight();
 	boxBest.yMin = 0;
 
-	int numPixels = ccameraGetNumPixels();
+	size_t numPixels = ccameraGetNumPixels();
 	int *delta = malloc(sizeof(int*) * numPixels);
 	assert(delta);
 	boxSubtraction(fMax, fMin, delta, boxBest);
@@ -309,7 +317,7 @@ static void initialize(struct argsCounting *args)
 	findFirstExtremePair(avgs, args->cFrames, &iMin, &iMax);
 	free(avgs);
 
-	initializeBox(args, args->frames[iMin], args->frames[iMax]);
+	initializeBox(args->frames[iMin], args->frames[iMax]);
 
 	growingDistant = iMin < iMax;
 
@@ -374,6 +382,8 @@ static bool isRepFromFrame(uint16_t *frame)
 
 struct state runCounting(void *a, char **err_msg, int *ret)
 {
+	(void) err_msg;
+	(void) ret;
 	struct argsCounting *args = a;
 	initialize(args);
 

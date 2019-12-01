@@ -40,8 +40,7 @@ CFLAGS += -Wfatal-errors -std=c99
 #
 #make <target> STRICT=<value>
 
-#TODO: why isn't this more strict?
-STRICT ?= 2
+STRICT ?= 0
 
 ifeq ($(shell test $(STRICT) -le 2; echo $$?),0)
 	CFLAGS += -Werror
@@ -52,20 +51,13 @@ ifeq ($(shell test $(STRICT) -le 1; echo $$?),0)
 endif
 
 ifeq ($(shell test $(STRICT) -eq 0; echo $$?),0)
-#-fsanitize=address
 	CFLAGS += -Wall -Wextra
 endif
 
 
-OPTS_DEBUG = -D DEBUG -O0 -ggdb -fno-inline
+OPTS_DEBUG = -D DEBUG -O0 -ggdb -fno-inline -fsanitize=address
 OPTS_OPTIMIZED = -O3
-OPTIMIZED ?= 1
-ifeq ($(shell test $(OPTIMIZED) -eq 0; echo $$?),0)
-	CFLAGS += $(OPTS_DEBUG)
-else
-	CFLAGS += $(OPTS_OPTIMIZED)
-endif
-
+OPTIMIZED ?= 0
 
 CFLAGS += -D_DEFAULT_SOURCE -mssse3 -pthread
 #CFLAGS += -DBUILD_EASYLOGGINGPP -DELPP_NO_DEFAULT_LOG_FILE -DELPP_THREAD_SAFE -DHWM_OVER_XU -DRS2_USE_V4L2_BACKEND -DUNICODE
@@ -73,6 +65,18 @@ CFLAGS += -D_DEFAULT_SOURCE -mssse3 -pthread
 #todo: remove rdynamic?
 LDFLAGS += -rdynamic
 LDLIBS += -lGL -lGLU -lrt -lm -ldl -lX11 -l:librealsense2.so -pthread
+
+LDFLAGS_DEBUG = -fsanitize=address
+LDFLAGS_OPTIMIZED =
+
+ifeq ($(shell test $(OPTIMIZED) -eq 0; echo $$?),0)
+	CFLAGS += $(OPTS_DEBUG)
+	LDFLAGS += $(LDFLAGS_DEBUG)
+else
+	CFLAGS += $(OPTS_OPTIMIZED)
+	LDFLAGS += $(LDFLAGS_OPTIMIZED)
+endif
+
 
 
 

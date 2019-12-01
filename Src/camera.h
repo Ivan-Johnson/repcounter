@@ -11,8 +11,8 @@
 int cameraInit(struct args args);
 int cameraDestroy();
 
-int cameraGetFrameWidth();
-int cameraGetFrameHeight();
+size_t cameraGetFrameWidth();
+size_t cameraGetFrameHeight();
 
 // Waits for the next frame and writes it to frameOut
 int cameraGetFrame(uint16_t *frameOut);

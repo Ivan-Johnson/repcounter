@@ -106,13 +106,13 @@ static void pixelSort(uint16_t *buf, size_t cPix)
 
 		// shift right-most elements right by one until we've found the
 		// spot for `tmp`
-		size_t ij = ii - 1;
-		while(ij >= 0 && tmp < buf[ij]) {
-			buf[ij + 1] = buf[ij];
+		size_t ij = ii;
+		while(ij > 0 && tmp < buf[ij-1]) {
+			buf[ij] = buf[ij - 1];
 			ij--;
 		}
 
-		buf[ij + 1] = tmp;
+		buf[ij] = tmp;
 	}
 }
 
@@ -124,9 +124,9 @@ static void computeMedian(uint16_t *frameOut, unsigned int iStart, uint16_t *scr
 {
 	unsigned int iEnd    = iStart + sample_size;
 	unsigned int iMedian = iStart + sample_size / 2;
-	int cPixels = ccameraGetNumPixels();
+	size_t cPixels = ccameraGetNumPixels();
 
-	for (int iPixel = 0; iPixel < cPixels; iPixel++) {
+	for (size_t iPixel = 0; iPixel < cPixels; iPixel++) {
 		for (unsigned int iFrame = iStart; iFrame < iEnd; iFrame++) {
 			scratch[iFrame] = frames[iFrame][iPixel];
 		}
@@ -138,6 +138,8 @@ static void computeMedian(uint16_t *frameOut, unsigned int iStart, uint16_t *scr
 
 void *backgroundMain(void *foo)
 {
+	(void) foo;
+
 	unsigned long long before = 0;
 	unsigned long long after = 0;
 	unsigned int dropped = 0;
@@ -176,22 +178,19 @@ void *backgroundMain(void *foo)
 }
 
 
-int ccameraGetFrameWidth()
+size_t ccameraGetFrameWidth()
 {
-	int width = cameraGetFrameWidth();
-	return width;
+	return cameraGetFrameWidth();
 }
 
-int ccameraGetFrameHeight()
+size_t ccameraGetFrameHeight()
 {
-	int height = cameraGetFrameHeight();
-	return height;
+	return cameraGetFrameHeight();
 }
 
-int ccameraGetNumPixels()
+size_t ccameraGetNumPixels()
 {
-	int count = ccameraGetFrameWidth() * ccameraGetFrameHeight();
-	return count;
+	return ccameraGetFrameWidth() * ccameraGetFrameHeight();
 }
 
 size_t ccameraGetFrameSize()
@@ -221,13 +220,13 @@ void ccameraGetFrames(uint16_t* outNew, uint16_t* outOld)
 
 void ccameraComputeFrameAverages(uint16_t** frames, unsigned int cFrames, double *averages)
 {
-	int cPixels = ccameraGetNumPixels();
+	size_t cPixels = ccameraGetNumPixels();
 
 	for (unsigned int iF = 0; iF < cFrames; iF++) {
 		double total = 0;
-		for (unsigned int iP = 0; iP < cPixels; iP++) {
+		for (size_t iP = 0; iP < cPixels; iP++) {
 			total += frames[iF][iP];
 		}
-		averages[iF] = total / cPixels;
+		averages[iF] = total / (double) cPixels;
 	}
 }
