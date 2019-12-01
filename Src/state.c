@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "state.h"
+#include "helper.h"
 
 struct state runError(void *args, char **err, int *ret)
 {
@@ -41,7 +42,9 @@ int stateRun()
 			return ret;
 		}
 
+		unsigned long long tPre = getTimeInMs();
 		struct state state_new = state.function(state.args, &err, &ret);
+		unsigned long long tPost = getTimeInMs();
 		if (state.shouldFreeArgs) {
 			free(state.args);
 		}
@@ -49,6 +52,10 @@ int stateRun()
 			printf("ERROR: state %s returned an invalid state: {%p, %p}\n", state.name, state_new.name, state_new.function);
 			return EXIT_FAILURE;
 		}
+
+		unsigned long long delta = tPost - tPre;
+		printf("State %s ran for %llu seconds and set state to %s\n", state.name, delta/1000, state_new.name);
+
 		state = state_new;
 	}
 }
