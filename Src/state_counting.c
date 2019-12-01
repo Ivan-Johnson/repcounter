@@ -37,6 +37,8 @@ static double priorAvgRange;
 
 
 static volatile bool done;
+
+// A region of a frame. `Min`s are included, `Max`s are excluded.
 struct box {
 	unsigned int xMin, xMax, yMin, yMax;
 };
@@ -197,13 +199,13 @@ static void drawBox(uint16_t *frame, uint16_t color, struct box box)
 	// draw horizontal lines
 	for (unsigned int iX = box.xMin; iX < box.xMax; iX++) {
 		frame[width*box.yMin + iX] = color;
-		frame[width*box.yMax + iX] = color;
+		frame[width*(box.yMax-1) + iX] = color;
 	}
 
 	// draw vertical lines
 	for (unsigned int iY = box.yMin; iY < box.yMax; iY++) {
 		frame[width*iY + box.xMin] = color;
-		frame[width*iY + box.xMax] = color;
+		frame[width*iY + (box.xMax-1)] = color;
 	}
 }
 
@@ -240,9 +242,9 @@ static void initializeBox(struct argsCounting *args, uint16_t *fMin, uint16_t *f
 	}
 
 	struct box boxBest;
-	boxBest.xMax = ccameraGetFrameWidth() - 1;
+	boxBest.xMax = ccameraGetFrameWidth();
 	boxBest.xMin = 0;
-	boxBest.yMax = ccameraGetFrameHeight() - 1;
+	boxBest.yMax = ccameraGetFrameHeight();
 	boxBest.yMin = 0;
 
 	double utilBest = avgInBoxInt(delta, boxBest);
