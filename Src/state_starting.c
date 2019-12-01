@@ -239,11 +239,11 @@ static struct state startingMain()
 		}
 	}
 
-	// TODO: don't just use `frames`, also return everything in `fNew`
+	free(dScratch);
 
+	// TODO: don't just use `frames`, also return everything in `fNew`
 	struct argsCounting *args = malloc(sizeof(struct argsCounting));
 	args->frames = frames;
-	args->frameAverages = dScratch;
 	args->cFrames = cFrames;
 
 	struct state next = STATE_COUNTING;
