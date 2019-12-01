@@ -96,12 +96,12 @@ static unsigned int findNextLow(double *avgs, unsigned int cFrames, unsigned int
 	return findNext(avgs, cFrames, start, false);
 }
 
-static unsigned int findExtreme(double *avgs, unsigned int cFrames, unsigned int start, unsigned int end, bool max)
+static unsigned int findExtreme(double *avgs, unsigned int start, unsigned int end, bool max)
 {
-	unsigned int iExtreme = 0;
+	unsigned int iExtreme = start;
 	double vExtreme = avgs[iExtreme];
 
-	for (unsigned int ii = iExtreme+1; ii < cFrames; ii++) {
+	for (unsigned int ii = iExtreme+1; ii < end; ii++) {
 		double value = avgs[ii];
 		if ((max  && value > vExtreme) ||
 		    (!max && value < vExtreme)) {
@@ -113,14 +113,14 @@ static unsigned int findExtreme(double *avgs, unsigned int cFrames, unsigned int
 	return iExtreme;
 }
 
-static unsigned int findMax(double *avgs, unsigned int cFrames, unsigned int start, unsigned int end)
+static unsigned int findMax(double *avgs, unsigned int start, unsigned int end)
 {
-	return findExtreme(avgs, cFrames, start, end, true);
+	return findExtreme(avgs, start, end, true);
 }
 
-static unsigned int findMin(double *avgs, unsigned int cFrames, unsigned int start, unsigned int end)
+static unsigned int findMin(double *avgs, unsigned int start, unsigned int end)
 {
-	return findExtreme(avgs, cFrames, start, end, false);
+	return findExtreme(avgs, start, end, false);
 }
 
 // todo: duplicate code; avgInBoxInt/avgInBox
@@ -220,13 +220,13 @@ static void findFirstExtremePair(double *avgs, unsigned int cFrames, unsigned in
 	unsigned int tmpHigh = findNextHigh(avgs, cFrames, 0);
 
 	if (tmpLow < tmpHigh) { // todo: cleanup. If I used findExtreme instead, these two would probably be ~duplicate code.
-		*iMin   = findMin(avgs, cFrames, tmpLow, tmpHigh);
+		*iMin   = findMin(avgs, tmpLow, tmpHigh);
 		tmpLow  = findNextLow (avgs, cFrames, tmpHigh);
-		*iMax   = findMax(avgs, cFrames, tmpHigh, tmpLow);
+		*iMax   = findMax(avgs, tmpHigh, tmpLow);
 	} else {
-		*iMax   = findMax(avgs, cFrames, tmpHigh, tmpLow);
+		*iMax   = findMax(avgs, tmpHigh, tmpLow);
 		tmpHigh = findNextHigh(avgs, cFrames, tmpLow);
-		*iMin   = findMin(avgs, cFrames, tmpLow, tmpHigh);
+		*iMin   = findMin(avgs, tmpLow, tmpHigh);
 	}
 }
 
