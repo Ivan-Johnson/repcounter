@@ -44,7 +44,7 @@ static volatile bool done;
 
 // A region of a frame. `Min`s are included, `Max`s are excluded.
 struct box {
-	unsigned int xMin, xMax, yMin, yMax;
+	size_t xMin, xMax, yMin, yMax;
 };
 static struct box box;
 
@@ -184,7 +184,7 @@ static struct box nextShrink(struct box box, bool reset)
 		delta *= -1;
 	}
 
-	unsigned int *value = vertical ?
+	size_t *value = vertical ?
 		(increaseMin ? &box.yMin : &box.yMax) :
 		(increaseMin ? &box.xMin : &box.xMax);
 	*value += delta;
