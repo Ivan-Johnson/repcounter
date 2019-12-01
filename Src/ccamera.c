@@ -106,13 +106,13 @@ static void pixelSort(uint16_t *buf, size_t cPix)
 
 		// shift right-most elements right by one until we've found the
 		// spot for `tmp`
-		size_t ij = ii - 1;
-		while(ij >= 0 && tmp < buf[ij]) {
-			buf[ij + 1] = buf[ij];
+		size_t ij = ii;
+		while(ij > 0 && tmp < buf[ij-1]) {
+			buf[ij] = buf[ij - 1];
 			ij--;
 		}
 
-		buf[ij + 1] = tmp;
+		buf[ij] = tmp;
 	}
 }
 
