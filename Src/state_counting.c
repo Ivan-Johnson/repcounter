@@ -7,6 +7,7 @@
 
 #include "camera.h"
 #include "ccamera.h"
+#include "helper.h"
 #include "state.h"
 #include "state_counting.h"
 #include "video.h"
@@ -47,6 +48,9 @@ struct box {
 	size_t xMin, xMax, yMin, yMax;
 };
 static struct box box;
+
+// number of ms that the user has to be idle for before termination
+static const unsigned long long msIdle = 10*1000;
 
 static void* readMain(void *none)
 {
@@ -396,7 +400,6 @@ struct state runCounting(void *a, char **err_msg, int *ret)
 	initialize(args);
 
 	unsigned int cRep = 0;
-	size_t cTotFrames = 0;
 
 	assert(!videoStart("/tmp/count"));
 
@@ -410,14 +413,15 @@ struct state runCounting(void *a, char **err_msg, int *ret)
 			printf("Backlog rep: %d\n", cRep);
 		}
 	}
-	cTotFrames += args->cFrames;
 
 	for (int tmp = 0; tmp < 10; tmp++) {
 		assert(!videoEncodeColor(1));
 	}
 
 
-	while (cTotFrames < CAMERA_FPS * 85) {
+	unsigned long long tPrior = getTimeInMs();
+
+	while (!done) {
 		pthread_mutex_lock(&mutBuf);
 
 		unsigned int iF = 0;
@@ -429,15 +433,17 @@ struct state runCounting(void *a, char **err_msg, int *ret)
 				assert(!videoEncodeColor(1));
 				cRep++;
 				printf("New rep: %d\n", cRep);
+				tPrior = getTimeInMs();
 			}
-
-			// TODO: if a certain amount of time has passed since a
-			// rep, switch to low power state.
 
 			iF++;
 		}
-		cTotFrames += cBuf;
 		cBuf = 0;
+
+		if (getTimeInMs() - tPrior > msIdle) {
+			done = true;
+		}
+
 		pthread_mutex_unlock(&mutBuf);
 
 		usleep(100000); // 100ms
