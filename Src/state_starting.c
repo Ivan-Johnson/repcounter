@@ -202,7 +202,7 @@ static struct state startingMain()
 			ii++;
 		}
 		if (ii == cFrames) {
-			continue;
+			goto SLEEP;
 		}
 
 		// Within this time sequence, find out how many times we went
@@ -227,6 +227,7 @@ static struct state startingMain()
 			// state.
 		}
 
+	SLEEP:
 		// Wait for a new batch of frames
 		if (!breakLoop) {
 			uint16_t *tmp = frames[0];
