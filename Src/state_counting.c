@@ -388,20 +388,39 @@ struct state runCounting(void *a, char **err_msg, int *ret)
 	initialize(args);
 
 	unsigned int cRep = 0;
+	size_t cTotFrames = 0;
+
+	assert(!videoStart("/tmp/count"));
 
 	for (unsigned int ii = 0; ii < args->cFrames; ii++) {
-		if (isRepFromFrame(args->frames[ii])) {
+		uint16_t *frame = args->frames[ii];
+		drawBox(frame, 0, box);
+		assert(!videoEncodeFrame(frame));
+		if (isRepFromFrame(frame)) {
+			assert(!videoEncodeColor(1));
 			cRep++;
+			printf("Backlog rep: %d\n", cRep);
 		}
 	}
+	cTotFrames += args->cFrames;
 
-	while (true) {
+	for (int tmp = 0; tmp < 10; tmp++) {
+		assert(!videoEncodeColor(1));
+	}
+
+
+	while (cTotFrames < CAMERA_FPS * 85) {
 		pthread_mutex_lock(&mutBuf);
 
 		unsigned int iF = 0;
 		while (iF < cBuf) {
-			if (isRepFromFrame(buf[iF])) {
+			uint16_t *frame = buf[iF];
+			drawBox(frame, 0, box);
+			assert(!videoEncodeFrame(frame));
+			if (isRepFromFrame(frame)) {
+				assert(!videoEncodeColor(1));
 				cRep++;
+				printf("New rep: %d\n", cRep);
 			}
 
 			// TODO: if a certain amount of time has passed since a
@@ -409,6 +428,7 @@ struct state runCounting(void *a, char **err_msg, int *ret)
 
 			iF++;
 		}
+		cTotFrames += cBuf;
 		cBuf = 0;
 		pthread_mutex_unlock(&mutBuf);
 
