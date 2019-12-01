@@ -54,6 +54,9 @@ static void* readMain(void *none)
 	while (!done) {
 		usleep(1000000 / CAMERA_FPS);
 
+		// todo: instead of this convoluted mess of having a second done
+		// check, simply aquire the lock before doing the `done` check
+		// (and release it during sleeps)
 		pthread_mutex_lock(&mutFNew);
 		if (done) {
 			goto CONTINUE;
