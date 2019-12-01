@@ -24,6 +24,18 @@ static pthread_mutex_t mutBuf = PTHREAD_ERRORCHECK_MUTEX_INITIALIZER_NP;
 
 static pthread_t thdRead; // reads individual frames into `fNew`
 
+
+
+static bool growingDistant;
+
+// This value is obtained by doing the computation:
+//   take the last two extreme frames (either peak&valley of a rep, or the valley&peak).
+//   subtract one from the other
+//   take the average value of the pixels in box
+//   THEN take the absolute value of that value
+static double priorAvgRange;
+
+
 static volatile bool done;
 struct box {
 	unsigned int xMin, xMax, yMin, yMax;
@@ -105,7 +117,24 @@ static unsigned int findMin(double *avgs, unsigned int cFrames, unsigned int sta
 	return findExtreme(avgs, cFrames, start, end, false);
 }
 
-static double avgInBox(int *frame, struct box box)
+// todo: duplicate code; avgInBoxInt/avgInBox
+static double avgInBoxInt(int *frame, struct box box)
+{
+	unsigned int width = ccameraGetFrameWidth();
+	double total = 0;
+
+	for (unsigned int iY = box.yMin; iY < box.yMax; iY++) {
+		for (unsigned int iX = box.xMin; iX < box.xMax; iX++) {
+			total += frame[iY*width + iX];
+		}
+	}
+
+	unsigned int numPixels = (box.yMax - box.yMin) * (box.xMax - box.xMin);
+	return total / numPixels;
+}
+
+// todo: duplicate code; avgInBoxInt/avgInBox
+static double avgInBox(uint16_t *frame, struct box box)
 {
 	unsigned int width = ccameraGetFrameWidth();
 	double total = 0;
@@ -216,7 +245,7 @@ static void initializeBox(struct argsCounting *args, uint16_t *fMin, uint16_t *f
 	boxBest.yMax = ccameraGetFrameHeight() - 1;
 	boxBest.yMin = 0;
 
-	double utilBest = avgInBox(delta, boxBest);
+	double utilBest = avgInBoxInt(delta, boxBest);
 
 	nextShrink(boxBest, true);
 	unsigned int lastShrink = 0;
@@ -229,7 +258,7 @@ static void initializeBox(struct argsCounting *args, uint16_t *fMin, uint16_t *f
 		// parameter, just pass `lastShrink`. %4 to get direction, /4 to
 		// get magnitude.
 		struct box boxNew = nextShrink(boxBest, false);
-		double utilNew = avgInBox(delta, boxNew);
+		double utilNew = avgInBoxInt(delta, boxNew);
 
 
 		// TODO: print delta, not a normal frame.
@@ -275,11 +304,18 @@ static void initialize(struct argsCounting *args)
 	fail = pthread_create(&thdRead, NULL, &readMain, NULL);
 	assert(!fail);
 
-	// It's important that these are done AFTER starting `thdRead`,
+	// It's important that all this junk is done AFTER starting `thdRead`,
 	// otherwise we'll miss frames
+
 	unsigned int iMin, iMax;
 	findFirstExtremePair(args->frameAverages, args->cFrames, &iMin, &iMax);
 	initializeBox(args, args->frames[iMin], args->frames[iMax]);
+
+	growingDistant = iMin < iMax;
+
+	double tmpMin = avgInBox(args->frames[iMin], box);
+	double tmpMax = avgInBox(args->frames[iMax], box);
+	priorAvgRange = tmpMax - tmpMin;
 }
 
 static void destroy()
@@ -304,32 +340,39 @@ static void destroyArgs(struct argsCounting *args)
 	free(args->frameAverages);
 }
 
+static bool isRepFromFrame(uint16_t *frame)
+{
+	// TODO
+	return false;
+}
+
 struct state runCounting(void *a, char **err_msg, int *ret)
 {
 	struct argsCounting *args = a;
 	initialize(args);
 
-	assert(!videoStart("/tmp/counting"));
+	unsigned int cRep = 0;
+
 	for (unsigned int ii = 0; ii < args->cFrames; ii++) {
-		assert(!videoEncodeFrame(args->frames[ii]));
+		if (isRepFromFrame(args->frames[ii])) {
+			cRep++;
+		}
 	}
 
-	assert(!videoEncodeColor(0));
-	assert(!videoEncodeColor(0));
-	assert(!videoEncodeColor(0));
-	assert(!videoEncodeColor(0));
-	assert(!videoEncodeColor(0));
-
-	unsigned int iF = 0;
-	while (iF < CAMERA_FPS * 5) {
+	while (true) {
 		pthread_mutex_lock(&mutBuf);
 
-		unsigned int iTmp = 0;
-		while (iTmp < cBuf) {
-			assert(!videoEncodeFrame(buf[iTmp]));
-			iTmp++;
+		unsigned int iF = 0;
+		while (iF < cBuf) {
+			if (isRepFromFrame(buf[iF])) {
+				cRep++;
+			}
+
+			// TODO: if a certain amount of time has passed since a
+			// rep, switch to low power state.
+
+			iF++;
 		}
-		iF += cBuf;
 		cBuf = 0;
 		pthread_mutex_unlock(&mutBuf);
 
