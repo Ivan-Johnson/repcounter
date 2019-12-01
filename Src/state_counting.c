@@ -221,17 +221,25 @@ static __attribute__((unused)) void drawBox(uint16_t *frame, uint16_t color, str
 	}
 }
 
-// find the first local min & local max of avgs
-static void findFirstExtremePair(double *avgs, unsigned int cFrames, unsigned int *iMin, unsigned int *iMax)
+// find a local min & local max of avgs
+static void findExtremePair(double *avgs, unsigned int cFrames, unsigned int *iMin, unsigned int *iMax)
 {
 	unsigned int tmpLow  = findNextLow (avgs, cFrames, 0);
 	unsigned int tmpHigh = findNextHigh(avgs, cFrames, 0);
 
 	if (tmpLow < tmpHigh) { // todo: cleanup. If I used findExtreme instead, these two would probably be ~duplicate code.
+		// skip the first rep; it's likely to be bad data
+		tmpLow  = findNextLow (avgs, cFrames, tmpHigh);
+		tmpHigh = findNextHigh(avgs, cFrames, tmpLow);
+
 		*iMin   = findMin(avgs, tmpLow, tmpHigh);
 		tmpLow  = findNextLow (avgs, cFrames, tmpHigh);
 		*iMax   = findMax(avgs, tmpHigh, tmpLow);
 	} else {
+		// skip the first rep; it's likely to be bad data
+		tmpHigh = findNextHigh(avgs, cFrames, tmpLow);
+		tmpLow  = findNextLow (avgs, cFrames, tmpHigh);
+
 		*iMax   = findMax(avgs, tmpHigh, tmpLow);
 		tmpHigh = findNextHigh(avgs, cFrames, tmpLow);
 		*iMin   = findMin(avgs, tmpLow, tmpHigh);
@@ -314,7 +322,7 @@ static void initialize(struct argsCounting *args)
 	double *avgs = malloc(sizeof(*avgs) * args->cFrames);
 	assert(avgs);
 	ccameraComputeFrameAverages(args->frames, args->cFrames, avgs);
-	findFirstExtremePair(avgs, args->cFrames, &iMin, &iMax);
+	findExtremePair(avgs, args->cFrames, &iMin, &iMax);
 	free(avgs);
 
 	initializeBox(args->frames[iMin], args->frames[iMax]);
