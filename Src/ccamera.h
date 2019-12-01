@@ -33,7 +33,7 @@ static void ccameraCopyFrame(uint16_t* fIn, uint16_t* fOut)
 void ccameraGetFrame(uint16_t* frameOut);
 void ccameraGetFrames(uint16_t* frameNew, uint16_t* frameOld);
 
-// TODO: figure out how to declare frame data as const
+// todo: figure out how to declare frame data as const
 void ccameraComputeFrameAverages(uint16_t** frames, unsigned int cFrames, double *averages);
 
 #endif

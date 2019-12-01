@@ -4,6 +4,10 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
+// TODO: parameterize ~all the states to take a boolean specifying whether or
+// not to log raw frames, and a possibly separate boolean for whether or not to
+// log other state info.
+
 
 struct state;
 typedef struct state (*stateFunction) (void *args, char **err, int *ret);

@@ -161,7 +161,7 @@ int cameraGetFrame(uint16_t *frameOut)
 {
 	assert(frameOut != NULL);
 
-	rs2_error* e = NULL; //TODO: just use objs.err? We have to initialize it to NULL though, I think.
+	rs2_error* e = NULL; //todo: just use objs.err? We have to initialize it to NULL though, I think.
 	int fail = EXIT_FAILURE;
 	rs2_frame* frames = rs2_pipeline_wait_for_frames(objs.pipeline, RS2_DEFAULT_TIMEOUT, &e);
 	if (e) {

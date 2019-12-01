@@ -34,21 +34,21 @@ void objs_delete(struct objs objs)
 		rs2_delete_device_list(objs.device_list);
 	}
 	if (objs.err) {
-		//TODO: is it correct to do nothing here?
+		//todo: is it correct to do nothing here?
 		//rs2_delete_config(objs.config);
 	}
 	if (objs.pipeline) {
 		rs2_delete_pipeline(objs.pipeline);
 	}
 	if (objs.stream_profile) {
-		//TODO: is it correct to do nothing here? objs.stream_profile is const, so...
+		//todo: is it correct to do nothing here? objs.stream_profile is const, so...
 		//rs2_delete_stream_profile(objs.stream_profile);
 	}
 	if (objs.dev) {
 		rs2_delete_device(objs.dev);
 	}
 	if (objs.stream_profile_list) {
-		//TODO: is it correct to do nothing here? `rs2_pipeline_profile_get_streams` doesn't say that it has to be deleted...
+		//todo: is it correct to do nothing here? `rs2_pipeline_profile_get_streams` doesn't say that it has to be deleted...
 		//rs2_delete_stream_profiles_list(objs.stream_profile_list);
 	}
 	if (objs.pipeline_profile) {

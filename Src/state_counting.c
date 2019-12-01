@@ -67,7 +67,7 @@ static void* readMain(void *none)
 
 static unsigned int findNext(double *avgs, unsigned int cFrames, unsigned int start, bool max)
 {
-	static const double thresh = 8; // TODO: unduplicate with state_starting#minDeviation
+	static const double thresh = 8; // todo: unduplicate with state_starting#minDeviation
 	double sum = 0;
 	for (unsigned int ii = 0; ii < cFrames; ii++) {
 		sum += avgs[ii];
@@ -318,7 +318,7 @@ static void destroy()
 	assert(!done);
 	done = true;
 
-	struct timespec stop = {time(NULL) + 2, 0}; // TODO: tighten this bound
+	struct timespec stop = {time(NULL) + 2, 0}; // todo: tighten this bound
 	assert(!pthread_timedjoin_np(thdRead, NULL, &stop));
 
 	assert(!pthread_mutex_destroy(&mutBuf));

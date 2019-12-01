@@ -125,7 +125,6 @@ int videoEncodeFrame(uint16_t *data)
 	}
 
 	// Choosen arbitrarily for one particular situation.
-	// TODO: does this value yield good performance in general?
 	uint16_t inputMax = 4000;
 
 	for (int y = 0; y < ctx->height; y++) {
@@ -185,7 +184,7 @@ int videoStart(char *filename)
 	ctx->width = ccameraGetFrameWidth();
 	ctx->height = ccameraGetFrameHeight();
 	/* frames per second */
-	//TODO: 25->CAMERA_FPS?
+	//todo: 25->CAMERA_FPS?
 	ctx->time_base = (AVRational){1, 25};
 	ctx->framerate = (AVRational){25, 1};
 

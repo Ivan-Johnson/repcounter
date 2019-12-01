@@ -20,7 +20,7 @@ static uint16_t **frames;
 static const unsigned int cFrames = CAMERA_FPS * 5; // # of frames in `frames`.
 static pthread_mutex_t mutFrames = PTHREAD_ERRORCHECK_MUTEX_INITIALIZER_NP;
 // how far away from the average must you go before it counts as a up or a down.
-static const double minDeviation = 8; // TODO: unduplicate with state_counting#findNext#thresh
+static const double minDeviation = 8; // todo: unduplicate with state_counting#findNext#thresh
 // how many reps have to be detected to be considered activated
 static const unsigned int repThreshold = 2;
 
@@ -66,7 +66,7 @@ static void* readMain(void *none)
 
 static void* moveMain(void* none)
 {
-	// TODO: malloc/free fNewScratch here, not globally
+	// todo: malloc/free fNewScratch here, not globally
 	while (!done) {
 		usleep(US_DELAY_MOVE);
 
@@ -158,7 +158,7 @@ static void destroy()
 	// setting of `done` is now done in startingMain
 	//done = true;
 
-	struct timespec stop = {time(NULL) + 2, 0}; // TODO: tighten this bound
+	struct timespec stop = {time(NULL) + 2, 0}; // todo: tighten this bound
 	assert(!pthread_timedjoin_np(thdRead, NULL, &stop));
 	assert(!pthread_timedjoin_np(thdMove, NULL, &stop));
 
@@ -239,7 +239,7 @@ static struct state startingMain()
 		}
 	}
 
-	// TODO TODO TODO: don't just use `frames`, also return everything in `fNew`
+	// TODO: don't just use `frames`, also return everything in `fNew`
 
 	struct argsCounting *args = malloc(sizeof(struct argsCounting));
 	args->frames = frames;
