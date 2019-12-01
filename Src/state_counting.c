@@ -33,8 +33,12 @@ static bool growingDistant;
 //   subtract one from the other
 //   take the average value of the pixels in box
 //   THEN take the absolute value of that value
-static double priorAvgRange;
 
+// todo: update this value as new data comes in. Actually not, because it seems
+// likely that reps gradually get shallower as cReps increases and we don't want
+// to cound the bad ones at the end.
+static double range;
+static double lastExtreme;
 
 static volatile bool done;
 
@@ -328,7 +332,7 @@ static void initialize(struct argsCounting *args)
 
 	double tmpMin = avgInBox(args->frames[iMin], box);
 	double tmpMax = avgInBox(args->frames[iMax], box);
-	priorAvgRange = tmpMax - tmpMin;
+	range = tmpMax - tmpMin;
 }
 
 static void destroy()
@@ -355,8 +359,35 @@ static void destroyArgs(struct argsCounting *args)
 
 static bool isRepFromFrame(uint16_t *frame)
 {
-	// TODO
-	return false;
+	// Each pushup must have a range of at least thresh*range
+	static const double thresh = 0.6;
+	double avg = avgInBox(frame, box);
+
+	if ((growingDistant && avg < lastExtreme) ||
+		(!growingDistant && avg > lastExtreme)) {
+		// a previous frame was extreme enough to flip growingDistant,
+		// but the rep hasn't actually changed directions yet.
+		lastExtreme = avg;
+		return false;
+	}
+
+	double delta = lastExtreme - avg;
+
+	bool goodMagnitude = fabs(delta) > range*thresh;
+	bool goodSign = (growingDistant && avg > lastExtreme) ||
+		(!growingDistant && avg < lastExtreme);
+
+	if (!goodMagnitude || !goodSign) {
+		// nothing interesting is happening
+		return false;
+	}
+
+	// goodMagnitude && goodSign, therefore we've completed a half-rep and need to flipGrowingDistant
+	lastExtreme = avg;
+	growingDistant = !growingDistant;
+
+	// only count every other half rep
+	return growingDistant;
 }
 
 struct state runCounting(void *a, char **err_msg, int *ret)
