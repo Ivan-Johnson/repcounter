@@ -178,16 +178,22 @@ static struct box nextShrink(struct box box, bool reset)
 	bool vertical = dir % 2;
 	bool increaseMin = (dir / 2) % 2;
 
-	unsigned int range = vertical ? box.yMax - box.yMin : box.xMax - box.xMin;
-	unsigned int delta = ceil(range*amount);
-	if (!increaseMin) {
-		delta *= -1;
-	}
+	size_t range = vertical ? box.yMax - box.yMin : box.xMax - box.xMin;
+	double ddelta = ceil((double)range * amount);
+	assert(ddelta < SIZE_MAX);
+	size_t delta = (size_t) ddelta;
 
 	size_t *value = vertical ?
 		(increaseMin ? &box.yMin : &box.yMax) :
 		(increaseMin ? &box.xMin : &box.xMax);
-	*value += delta;
+	if (!increaseMin) {
+		assert(*value >= delta);
+		*value -= delta;
+	} else {
+		assert(*value <= SIZE_MAX - delta);
+		*value += delta;
+	}
+
 
 	dir++;
 	if (dir % 4 != dir) {
