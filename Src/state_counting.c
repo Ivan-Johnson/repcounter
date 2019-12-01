@@ -50,6 +50,8 @@ static struct box box;
 
 static void* readMain(void *none)
 {
+	(void) none;
+
 	while (!done) {
 		usleep(1000000 / CAMERA_FPS);
 
@@ -126,11 +128,11 @@ static unsigned int findMin(double *avgs, unsigned int start, unsigned int end)
 // todo: duplicate code; avgInBoxInt/avgInBox
 static double avgInBoxInt(int *frame, struct box box)
 {
-	unsigned int width = ccameraGetFrameWidth();
+	size_t width = ccameraGetFrameWidth();
 	double total = 0;
 
-	for (unsigned int iY = box.yMin; iY < box.yMax; iY++) {
-		for (unsigned int iX = box.xMin; iX < box.xMax; iX++) {
+	for (size_t iY = box.yMin; iY < box.yMax; iY++) {
+		for (size_t iX = box.xMin; iX < box.xMax; iX++) {
 			total += frame[iY*width + iX];
 		}
 	}
@@ -142,11 +144,11 @@ static double avgInBoxInt(int *frame, struct box box)
 // todo: duplicate code; avgInBoxInt/avgInBox
 static double avgInBox(uint16_t *frame, struct box box)
 {
-	unsigned int width = ccameraGetFrameWidth();
+	size_t width = ccameraGetFrameWidth();
 	double total = 0;
 
-	for (unsigned int iY = box.yMin; iY < box.yMax; iY++) {
-		for (unsigned int iX = box.xMin; iX < box.xMax; iX++) {
+	for (size_t iY = box.yMin; iY < box.yMax; iY++) {
+		for (size_t iX = box.xMin; iX < box.xMax; iX++) {
 			total += frame[iY*width + iX];
 		}
 	}

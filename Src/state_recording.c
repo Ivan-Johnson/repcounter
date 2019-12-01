@@ -15,6 +15,10 @@
 
 struct state runRecording(void *args, char **err_msg, int *retStatus)
 {
+	(void) args;
+	(void) err_msg;
+	(void) retStatus;
+
 	unsigned long long tStart = getTimeInMs();
 	uint16_t *frame = NULL;
 	if (FVIDEO) {
