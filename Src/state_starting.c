@@ -211,7 +211,7 @@ static struct state startingMain()
 		// Find the first frame that differs from the average by at
 		// least minDeviation
 		unsigned int ii = 0;
-		while (fabs(dScratch[ii]) < minDeviation && ii < cFrames) {
+		while (ii < cFrames && fabs(dScratch[ii]) < minDeviation) {
 			ii++;
 		}
 		if (ii == cFrames) {
