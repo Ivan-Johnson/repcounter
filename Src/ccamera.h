@@ -4,8 +4,9 @@
 // This `Clean Camera` module is a wrapper around `camera` that denoises data,
 // and adds a couple of other helpful features.
 
-#include <stdlib.h>
 #include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "args.h"
 
@@ -21,6 +22,12 @@ static uint16_t ccameraGetPixelFromFrame(uint16_t *frame, size_t x, size_t y) __
 static uint16_t ccameraGetPixelFromFrame(uint16_t *frame, size_t x, size_t y)
 {
 	return frame[y*ccameraGetFrameWidth() + x];
+}
+
+static void ccameraCopyFrame(uint16_t* fIn, uint16_t* fOut) __attribute__((unused));
+static void ccameraCopyFrame(uint16_t* fIn, uint16_t* fOut)
+{
+	memcpy(fOut, fIn, ccameraGetFrameSize());
 }
 
 void ccameraGetFrame(uint16_t* frameOut);
