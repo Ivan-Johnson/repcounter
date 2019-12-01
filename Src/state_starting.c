@@ -55,11 +55,15 @@ static void* readMain(void *none)
 		usleep(1000000 / CAMERA_FPS);
 
 		pthread_mutex_lock(&mutFNew);
+		if (done) {
+			goto CONTINUE;
+		}
 
 		assert(cFNew < cFNewMax);
 		ccameraGetFrame(fNew[cFNew]);
 		cFNew++;
 
+	CONTINUE:
 		pthread_mutex_unlock(&mutFNew);
 	}
 
