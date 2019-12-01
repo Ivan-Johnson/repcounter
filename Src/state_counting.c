@@ -303,7 +303,12 @@ static void initialize(struct argsCounting *args)
 	// otherwise we'll miss frames
 
 	unsigned int iMin, iMax;
-	findFirstExtremePair(args->frameAverages, args->cFrames, &iMin, &iMax);
+	double *avgs = malloc(sizeof(*avgs) * args->cFrames);
+	assert(avgs);
+	ccameraComputeFrameAverages(args->frames, args->cFrames, avgs);
+	findFirstExtremePair(avgs, args->cFrames, &iMin, &iMax);
+	free(avgs);
+
 	initializeBox(args, args->frames[iMin], args->frames[iMax]);
 
 	growingDistant = iMin < iMax;
@@ -332,7 +337,6 @@ static void destroyArgs(struct argsCounting *args)
 		free(args->frames[ii]);
 	}
 	free(args->frames);
-	free(args->frameAverages);
 }
 
 static bool isRepFromFrame(uint16_t *frame)

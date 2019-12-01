@@ -165,8 +165,17 @@ static void destroy()
 	assert(!pthread_mutex_destroy(&mutFNew));
 	assert(!pthread_mutex_destroy(&mutFrames));
 
+	for (int i = 0; i < cFrames; i++) {
+		if (frames[i] != NULL) {
+			free(frames[i]);
+		}
+	}
+	free(frames);
+
 	for (int i = 0; i < cFNewMax; i++) {
-		free(fNew[i]);
+		if (fNew[i] != NULL) {
+			free(fNew[i]);
+		}
 	}
 	free(fNew);
 
@@ -239,18 +248,33 @@ static struct state startingMain()
 		}
 	}
 
-	// TODO: don't just use `frames`, also return everything in `fNew`
+	free(dScratch);
+
+	pthread_mutex_lock(&mutFNew);
 
 	struct argsCounting *args = malloc(sizeof(struct argsCounting));
-	args->frames = frames;
-	args->frameAverages = dScratch;
-	args->cFrames = cFrames;
+	args->cFrames = cFrames + cFNew;
+	args->frames = malloc(sizeof(*args->frames) * args->cFrames);
+
+	unsigned int iBase = 0;
+	for (unsigned int ii = 0; ii < cFrames; ii++) {
+		args->frames[iBase + ii] = frames[ii];
+		frames[ii] = NULL;
+	}
+	iBase += cFrames;
+	for (unsigned int ii = 0; ii < cFNew; ii++) {
+		args->frames[iBase + ii] = fNew[ii];
+		fNew[ii] = NULL;
+	}
+	cFNew = 0;
+
 
 	struct state next = STATE_COUNTING;
 	next.args = args;
 	next.shouldFreeArgs = true;
 
 	done = true;
+	pthread_mutex_unlock(&mutFNew);
 	pthread_mutex_unlock(&mutFrames);
 
 	return next;
