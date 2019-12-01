@@ -121,8 +121,8 @@ bool initializeWithFirstDevice(struct args args)
 		goto FAIL;
 	}
 	assert(tmpWidth > 0 && tmpHeight > 0);
-	frame_width = tmpWidth;
-	frame_height = tmpHeight;
+	frame_width = (size_t) tmpWidth;
+	frame_height = (size_t) tmpHeight;
 
 	return true;
 FAIL:
@@ -195,8 +195,8 @@ int cameraGetFrame(uint16_t *frameOut)
 
 		if (isDepthFrame) {
 			const uint16_t* data = (const uint16_t*)(rs2_get_frame_data(frame, &e));
-			int numPixels = frame_width * frame_height;
-			for (int i = 0; i < numPixels; i++) {
+			size_t numPixels = frame_width * frame_height;
+			for (size_t i = 0; i < numPixels; i++) {
 				frameOut[i] = data[i];
 			}
 			brk = true;
