@@ -22,6 +22,9 @@ bool stateEqual(struct state state1, struct state state2)
 	return state1.function == state2.function && strcmp(state1.name, state2.name) == 0;
 }
 
+// todo: catch sigint/sigterm, set some sort of boolean that states monitor to
+// know that they should exit
+
 bool stateValid(struct state state)
 {
 	for (unsigned int tmp = 0; tmp < NUM_STATES; tmp++) {
