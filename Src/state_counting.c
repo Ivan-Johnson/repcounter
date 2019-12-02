@@ -60,13 +60,13 @@ static void* readMain(void *none)
 	while (!done) {
 		usleep(1000000 / CAMERA_FPS);
 
-		pthread_mutex_lock(&mutBuf);
+		assert(!pthread_mutex_lock(&mutBuf));
 
 		assert(cBuf < cBufMax);
 		ccameraGetFrame(buf[cBuf]);
 		cBuf++;
 
-		pthread_mutex_unlock(&mutBuf);
+		assert(!pthread_mutex_unlock(&mutBuf));
 	}
 
 	return NULL;
@@ -422,7 +422,7 @@ struct state runCounting(void *a, char **err_msg, int *ret)
 	unsigned long long tPrior = getTimeInMs();
 
 	while (!done) {
-		pthread_mutex_lock(&mutBuf);
+		assert(!pthread_mutex_lock(&mutBuf));
 
 		unsigned int iF = 0;
 		while (iF < cBuf) {
@@ -444,7 +444,7 @@ struct state runCounting(void *a, char **err_msg, int *ret)
 			done = true;
 		}
 
-		pthread_mutex_unlock(&mutBuf);
+		assert(!pthread_mutex_unlock(&mutBuf));
 
 		usleep(100000); // 100ms
 	}

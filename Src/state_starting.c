@@ -57,7 +57,7 @@ static void* readMain(void *none)
 		// todo: instead of this convoluted mess of having a second done
 		// check, simply aquire the lock before doing the `done` check
 		// (and release it during sleeps)
-		pthread_mutex_lock(&mutFNew);
+		assert(!pthread_mutex_lock(&mutFNew));
 		if (done) {
 			goto CONTINUE;
 		}
@@ -67,7 +67,7 @@ static void* readMain(void *none)
 		cFNew++;
 
 	CONTINUE:
-		pthread_mutex_unlock(&mutFNew);
+		assert(!pthread_mutex_unlock(&mutFNew));
 	}
 
 	return NULL;
@@ -91,12 +91,10 @@ static void* moveMain(void* none)
 		//
 		// Also note that we can't delay the locking of mutFNew because
 		// we're using cFNew.
-		pthread_mutex_lock(&mutFrames);
-		pthread_mutex_lock(&mutFNew);
+		assert(!pthread_mutex_lock(&mutFrames));
+		assert(!pthread_mutex_lock(&mutFNew));
 		if (done) {
-			pthread_mutex_unlock(&mutFrames);
-			pthread_mutex_unlock(&mutFNew);
-			break;
+			goto CONTINUE;
 		}
 
 		// "delete" the `cFNew` oldest frames from `frames`
@@ -124,8 +122,9 @@ static void* moveMain(void* none)
 		// clear the contents of fNew
 		cFNew = 0;
 
-		pthread_mutex_unlock(&mutFNew);
-		pthread_mutex_unlock(&mutFrames);
+	CONTINUE:
+		assert(!pthread_mutex_unlock(&mutFNew));
+		assert(!pthread_mutex_unlock(&mutFrames));
 	}
 
 	return NULL;
@@ -200,7 +199,7 @@ static struct state startingMain()
 	double *dScratch = malloc(sizeof(double) * cFrames);
 	assert(dScratch);
 
-	pthread_mutex_lock(&mutFrames);
+	assert(!pthread_mutex_lock(&mutFrames));
 	while (!breakLoop) {
 		// for each frame, compute the difference between its average
 		// and the average of averages
@@ -252,16 +251,16 @@ static struct state startingMain()
 		if (!breakLoop) {
 			uint16_t *tmp = frames[0];
 			while(frames[0] == tmp) {
-				pthread_mutex_unlock(&mutFrames);
+				assert(!pthread_mutex_unlock(&mutFrames));
 				usleep(US_DELAY_MOVE / 10);
-				pthread_mutex_lock(&mutFrames);
+				assert(!pthread_mutex_lock(&mutFrames));
 			}
 		}
 	}
 
 	free(dScratch);
 
-	pthread_mutex_lock(&mutFNew);
+	assert(!pthread_mutex_lock(&mutFNew));
 
 	struct argsCounting *args = malloc(sizeof(struct argsCounting));
 	args->cFrames = cFrames + cFNew;
@@ -285,8 +284,8 @@ static struct state startingMain()
 	next.shouldFreeArgs = true;
 
 	done = true;
-	pthread_mutex_unlock(&mutFNew);
-	pthread_mutex_unlock(&mutFrames);
+	assert(!pthread_mutex_unlock(&mutFNew));
+	assert(!pthread_mutex_unlock(&mutFrames));
 
 	return next;
 }
