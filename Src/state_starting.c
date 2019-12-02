@@ -172,9 +172,6 @@ static void destroy()
 	assert(!pthread_timedjoin_np(thdRead, NULL, &stop));
 	assert(!pthread_timedjoin_np(thdMove, NULL, &stop));
 
-	assert(!pthread_mutex_destroy(&mutFNew));
-	assert(!pthread_mutex_destroy(&mutFrames));
-
 	for (size_t i = 0; i < cFrames; i++) {
 		if (frames[i] != NULL) {
 			free(frames[i]);

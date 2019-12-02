@@ -346,8 +346,6 @@ static void destroy()
 	struct timespec stop = {time(NULL) + 2, 0}; // todo: tighten this bound
 	assert(!pthread_timedjoin_np(thdRead, NULL, &stop));
 
-	assert(!pthread_mutex_destroy(&mutBuf));
-
 	free(buf);
 }
 
