@@ -7,6 +7,7 @@
 
 #include "camera.h"
 #include "ccamera.h"
+#include "helper.h"
 #include "state.h"
 #include "state_counting.h"
 #include "video.h"
@@ -46,6 +47,10 @@ static pthread_t thdRead; // reads individual frames into `fNew`
 static pthread_t thdMove; // Moves data from `fNew` to `frames`
 
 static volatile bool done;
+
+// number of ms that the user has to be idle for before termination
+static const unsigned long long msIdle = 30*1000;
+
 
 static void* readMain(void *none)
 {
@@ -191,13 +196,16 @@ static void destroy()
 
 static struct state startingMain()
 {
-	bool breakLoop = false;
+	bool success = false;
+	bool failure = false;
 
 	double *dScratch = malloc(sizeof(double) * cFrames);
 	assert(dScratch);
 
+	unsigned long long tStart = getTimeInMs();
+
 	assert(!pthread_mutex_lock(&mutFrames));
-	while (!breakLoop) {
+	while (!success && !failure) {
 		// for each frame, compute the difference between its average
 		// and the average of averages
 		ccameraComputeFrameAverages(frames, cFrames, dScratch);
@@ -220,6 +228,7 @@ static struct state startingMain()
 		if (ii == cFrames) {
 			goto SLEEP;
 		}
+		tStart = getTimeInMs();
 
 		// Within this time sequence, find out how many times we went
 		// from being more than minDeviation above to being more than
@@ -236,16 +245,20 @@ static struct state startingMain()
 		}
 
 		if (flipCount / 2 > repThreshold) {
-			breakLoop = true;
-		} else if (false) {
-			// TODO: if more than n seconds from start of `starting` and we
-			// haven't detected harmonic motion yet, return to low power
-			// state.
+			success = true;
 		}
 
 	SLEEP:
+		if (!success && getTimeInMs() - tStart > msIdle) {
+			// `!success` check is implied by time check?
+			failure = true;
+		}
+
 		// Wait for a new batch of frames
-		if (!breakLoop) {
+		//
+		// todo: instead of a redundant check, why don't we just put
+		// this at the top of the loop?
+		if (!success && !failure) {
 			uint16_t *tmp = frames[0];
 			while(frames[0] == tmp) {
 				assert(!pthread_mutex_unlock(&mutFrames));
@@ -255,33 +268,43 @@ static struct state startingMain()
 		}
 	}
 
+	// request stop early to give other threads as much time as possible to
+	// notice
+	done = true;
+
 	free(dScratch);
 
-	assert(!pthread_mutex_lock(&mutFNew));
+	struct state next;
+	if (success) {
+		assert(!pthread_mutex_lock(&mutFNew));
 
-	struct argsCounting *args = malloc(sizeof(struct argsCounting));
-	args->cFrames = cFrames + cFNew;
-	args->frames = malloc(sizeof(*args->frames) * args->cFrames);
+		struct argsCounting *args = malloc(sizeof(struct argsCounting));
+		args->cFrames = cFrames + cFNew;
+		args->frames = malloc(sizeof(*args->frames) * args->cFrames);
 
-	unsigned int iBase = 0;
-	for (unsigned int ii = 0; ii < cFrames; ii++) {
-		args->frames[iBase + ii] = frames[ii];
-		frames[ii] = NULL;
+		unsigned int iBase = 0;
+		for (unsigned int ii = 0; ii < cFrames; ii++) {
+			args->frames[iBase + ii] = frames[ii];
+			frames[ii] = NULL;
+		}
+		iBase += cFrames;
+		for (unsigned int ii = 0; ii < cFNew; ii++) {
+			args->frames[iBase + ii] = fNew[ii];
+			fNew[ii] = NULL;
+		}
+		cFNew = 0;
+
+
+		next = STATE_COUNTING;
+		next.args = args;
+		next.shouldFreeArgs = true;
+
+		assert(!pthread_mutex_unlock(&mutFNew));
+	} else {
+		assert(failure);
+		next = STATE_LOW_POWER;
 	}
-	iBase += cFrames;
-	for (unsigned int ii = 0; ii < cFNew; ii++) {
-		args->frames[iBase + ii] = fNew[ii];
-		fNew[ii] = NULL;
-	}
-	cFNew = 0;
 
-
-	struct state next = STATE_COUNTING;
-	next.args = args;
-	next.shouldFreeArgs = true;
-
-	done = true;
-	assert(!pthread_mutex_unlock(&mutFNew));
 	assert(!pthread_mutex_unlock(&mutFrames));
 
 	return next;
