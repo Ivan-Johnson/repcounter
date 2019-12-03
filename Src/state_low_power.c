@@ -11,7 +11,7 @@
 #include "helper.h"
 #include "state.h"
 
-static void drawFrac(uint16_t *frame, float value, float max, uint16_t color)
+static void __attribute__((unused)) drawFrac(uint16_t *frame, float value, float max, uint16_t color)
 {
 	size_t height = ccameraGetFrameHeight();
 
@@ -53,7 +53,7 @@ struct state runLowPower (void *args, char **err_msg, int *ret)
 
 	float cActive = 0;
 	float cThreshold = 0.1f * (float) numPixels; // randomly chosen, but it works
-	videoStart("/tmp/subtractionC");
+	videoStart("/tmp/subtractionB");
 	static const size_t nExtraFrames = 15;
 	for (size_t cc = 0; cc < nExtraFrames; cc++) {
 		videoEncodeColor(0);
@@ -65,14 +65,11 @@ struct state runLowPower (void *args, char **err_msg, int *ret)
 		float nActivePixels = 0;
 		for (size_t iPixel = 0; iPixel<numPixels; iPixel++) {
 			float activeness = fabsf((float) data_new[iPixel] - (float) data_old[iPixel]);
+			data_scratch[iPixel] = (uint16_t) activeness;
 			if (activeness > 40) {
 				nActivePixels++;
-				data_scratch[iPixel] = 4000;
-			} else {
-				data_scratch[iPixel] = 0;
 			}
 		}
-		drawFrac(data_scratch, nActivePixels, cThreshold*2, 3000);
 		assert(!videoEncodeFrame(data_scratch));
 
 #define CURWEIGHT 0.15f
