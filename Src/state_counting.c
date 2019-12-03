@@ -276,6 +276,35 @@ static void initializeBox(uint16_t *fMin, uint16_t *fMax)
 	assert(delta);
 	boxSubtraction(fMax, fMin, delta, boxBest);
 
+	assert(!videoStart("/tmp/countingTmp"));
+	for (int i = 0; i < 30; i++) {
+		assert(!videoEncodeFrame(fMin));
+	}
+	for (int i = 0; i < 30; i++) {
+		assert(!videoEncodeFrame(fMax));
+	}
+
+	uint16_t *uDelta = malloc(ccameraGetFrameSize());
+	int min = delta[0];
+	int max = delta[0];
+	min = -3000; // -500 makes the down position brighter
+	max = 3000;
+	for (size_t i = 0; i < ccameraGetNumPixels(); i++) {
+		int valIn = delta[i];
+		valIn = valIn < max ? valIn : max;
+		valIn = valIn > min ? valIn : min;
+		float valOut;
+
+		valOut = (float) valIn - (float) min;
+		valOut /= (float) (max-min);
+		valOut *= 4000;
+		uDelta[i] = (uint16_t) valOut;
+	}
+	for (int i = 0; i < 30; i++) {
+		assert(!videoEncodeFrame(uDelta));
+	}
+	assert(!videoStop());
+
 	double utilBest = avgInBoxInt(delta, boxBest);
 
 	nextShrink(boxBest, true);
