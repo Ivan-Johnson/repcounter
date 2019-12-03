@@ -24,6 +24,12 @@ static uint16_t ccameraGetPixelFromFrame(uint16_t *frame, size_t x, size_t y)
 	return frame[y*ccameraGetFrameWidth() + x];
 }
 
+static void ccameraSetPixelFromFrame(uint16_t *frame, size_t x, size_t y, uint16_t val) __attribute__((unused));
+static void ccameraSetPixelFromFrame(uint16_t *frame, size_t x, size_t y, uint16_t val)
+{
+	frame[y*ccameraGetFrameWidth() + x] = val;
+}
+
 static void ccameraCopyFrame(uint16_t* fIn, uint16_t* fOut) __attribute__((unused));
 static void ccameraCopyFrame(uint16_t* fIn, uint16_t* fOut)
 {

@@ -11,6 +11,28 @@
 #include "helper.h"
 #include "state.h"
 
+static void drawFrac(uint16_t *frame, float value, float max, uint16_t color)
+{
+	size_t height = ccameraGetFrameHeight();
+
+	size_t colWidth = 15;
+
+	float frac = value / max;
+	frac = frac < 0.95f ? frac : 0.95f;
+	size_t fracAsPixel = (size_t) (frac * (float) height);
+
+	assert(fracAsPixel < height); // so that lastY is strictly positive; it makes the loop conditions simpler
+	size_t lastY = height - fracAsPixel;
+
+	size_t firstX = ccameraGetFrameWidth() - colWidth;
+	size_t lastX = ccameraGetFrameWidth() - 1;
+	for (size_t iY = height - 1; iY >= lastY; iY--) {
+		for (size_t iX = firstX; iX < lastX; iX++) {
+			ccameraSetPixelFromFrame(frame, iX, iY, color);
+		}
+	}
+}
+
 struct state runLowPower (void *args, char **err_msg, int *ret)
 {
 	(void) args;
@@ -31,6 +53,11 @@ struct state runLowPower (void *args, char **err_msg, int *ret)
 
 	float cActive = 0;
 	float cThreshold = 0.1f * (float) numPixels; // randomly chosen, but it works
+	videoStart("/tmp/subtractionC");
+	static const size_t nExtraFrames = 15;
+	for (size_t cc = 0; cc < nExtraFrames; cc++) {
+		videoEncodeColor(0);
+	}
 	while (cActive < cThreshold) {
 		ccameraGetFrames(data_new, data_old);
 		unsigned long long tLast = getTimeInMs();
@@ -40,8 +67,13 @@ struct state runLowPower (void *args, char **err_msg, int *ret)
 			float activeness = fabsf((float) data_new[iPixel] - (float) data_old[iPixel]);
 			if (activeness > 40) {
 				nActivePixels++;
+				data_scratch[iPixel] = 4000;
+			} else {
+				data_scratch[iPixel] = 0;
 			}
 		}
+		drawFrac(data_scratch, nActivePixels, cThreshold*2, 3000);
+		assert(!videoEncodeFrame(data_scratch));
 
 #define CURWEIGHT 0.15f
 		cActive = CURWEIGHT*nActivePixels + (1-CURWEIGHT)*cActive;
@@ -54,6 +86,10 @@ struct state runLowPower (void *args, char **err_msg, int *ret)
 		assert(tSleep < UINT_MAX / 1000);
 		usleep((unsigned int) tSleep * 1000);
 	}
+	for (size_t cc = 0; cc < nExtraFrames; cc++) {
+		videoEncodeColor(0);
+	}
+	videoStop();
 
 	unsigned long long delta = getTimeInMs() - tStart;
 	printf("Activated after %f s\n", (double) delta / 1000.0);
