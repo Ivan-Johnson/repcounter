@@ -212,8 +212,11 @@ static struct state startingMain()
 		double tmpTotal = 0;
 		for (unsigned int ii = 0; ii < cFrames; ii++) {
 			tmpTotal += dScratch[ii];
+			printf("%f, ", dScratch[ii]);
 		}
+		printf("\n");
 		double average = tmpTotal / cFrames;
+		printf("%f, %f\n", average, minDeviation);
 
 		for (unsigned int ii = 0; ii < cFrames; ii++) {
 			dScratch[ii] -= average;
