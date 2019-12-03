@@ -362,6 +362,7 @@ static bool isRepFromFrame(uint16_t *frame)
 	// Each pushup must have a range of at least thresh*range
 	static const double thresh = 0.6;
 	double avg = avgInBox(frame, box);
+	printf("%f, ", avg);
 
 	if ((growingDistant && avg < lastExtreme) ||
 		(!growingDistant && avg > lastExtreme)) {
@@ -403,7 +404,6 @@ struct state runCounting(void *a, char **err_msg, int *ret)
 		uint16_t *frame = args->frames[ii];
 		if (isRepFromFrame(frame)) {
 			cRep++;
-			printf("Backlog rep: %d\n", cRep);
 		}
 	}
 
@@ -417,7 +417,6 @@ struct state runCounting(void *a, char **err_msg, int *ret)
 			uint16_t *frame = buf[iF];
 			if (isRepFromFrame(frame)) {
 				cRep++;
-				printf("New rep: %d\n", cRep);
 				tPrior = getTimeInMs();
 			}
 
@@ -433,6 +432,8 @@ struct state runCounting(void *a, char **err_msg, int *ret)
 
 		usleep(100000); // 100ms
 	}
+
+	printf("\n");
 
 	destroy();
 	destroyArgs(args);
