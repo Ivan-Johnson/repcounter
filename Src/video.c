@@ -141,7 +141,7 @@ int videoEncodeFrame(uint16_t *data)
 			uint8_t small = (uint8_t) (value * ((float) UINT8_MAX / inputMax));
 
 			// invert colors
-			// small = (uint8_t) (UINT8_MAX - small);
+			small = (uint8_t) (UINT8_MAX - small);
 
 			frame->data[0][y * frame->linesize[0] + x] = small; // Y
 		}
