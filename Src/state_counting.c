@@ -399,23 +399,13 @@ struct state runCounting(void *a, char **err_msg, int *ret)
 
 	unsigned int cRep = 0;
 
-	assert(!videoStart("/tmp/count"));
-
 	for (unsigned int ii = 0; ii < args->cFrames; ii++) {
 		uint16_t *frame = args->frames[ii];
-		drawBox(frame, 0, box);
-		assert(!videoEncodeFrame(frame));
 		if (isRepFromFrame(frame)) {
-			assert(!videoEncodeColor(1));
 			cRep++;
 			printf("Backlog rep: %d\n", cRep);
 		}
 	}
-
-	for (int tmp = 0; tmp < 10; tmp++) {
-		assert(!videoEncodeColor(1));
-	}
-
 
 	unsigned long long tPrior = getTimeInMs();
 
@@ -425,10 +415,7 @@ struct state runCounting(void *a, char **err_msg, int *ret)
 		unsigned int iF = 0;
 		while (iF < cBuf) {
 			uint16_t *frame = buf[iF];
-			drawBox(frame, 0, box);
-			assert(!videoEncodeFrame(frame));
 			if (isRepFromFrame(frame)) {
-				assert(!videoEncodeColor(1));
 				cRep++;
 				printf("New rep: %d\n", cRep);
 				tPrior = getTimeInMs();
@@ -446,9 +433,6 @@ struct state runCounting(void *a, char **err_msg, int *ret)
 
 		usleep(100000); // 100ms
 	}
-
-	assert(!videoStop());
-
 
 	destroy();
 	destroyArgs(args);
