@@ -337,6 +337,21 @@ static void initialize(struct argsCounting *args)
 	double tmpMin = avgInBox(args->frames[iMin], box);
 	double tmpMax = avgInBox(args->frames[iMax], box);
 	range = tmpMax - tmpMin;
+	printf("%f, %f, %f\n", tmpMin, tmpMax, range);
+
+	assert(!videoStart("/tmp/countingTmp"));
+
+	drawBox(args->frames[iMin], 10000, box);
+	drawBox(args->frames[iMax], 10000, box);
+
+	for (int i = 0; i < 60; i++) {
+		assert(!videoEncodeFrame(args->frames[iMin]));
+	}
+	for (int i = 0; i < 60; i++) {
+		assert(!videoEncodeFrame(args->frames[iMax]));
+	}
+	assert(!videoStop());
+
 }
 
 static void destroy()
