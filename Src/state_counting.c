@@ -234,6 +234,7 @@ static void findExtremePair(double *avgs, unsigned int cFrames, unsigned int *iM
 
 	if (tmpLow < tmpHigh) { // todo: cleanup. If I used findExtreme instead, these two would probably be ~duplicate code.
 		// skip the first rep; it's likely to be bad data
+		// todo: just find the last extreme pair... Wouldn't that have the best chance of avoiding garbage?
 		tmpLow  = findNextLow (avgs, cFrames, tmpHigh);
 		tmpHigh = findNextHigh(avgs, cFrames, tmpLow);
 
@@ -242,6 +243,7 @@ static void findExtremePair(double *avgs, unsigned int cFrames, unsigned int *iM
 		*iMax   = findMax(avgs, tmpHigh, tmpLow);
 	} else {
 		// skip the first rep; it's likely to be bad data
+		// todo: just find the last extreme pair... Wouldn't that have the best chance of avoiding garbage?
 		tmpHigh = findNextHigh(avgs, cFrames, tmpLow);
 		tmpLow  = findNextLow (avgs, cFrames, tmpHigh);
 
