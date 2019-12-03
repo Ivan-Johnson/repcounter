@@ -275,16 +275,15 @@ static void initializeBox(uint16_t *fMin, uint16_t *fMax)
 	int *delta = malloc(sizeof(int*) * numPixels);
 	assert(delta);
 	boxSubtraction(fMax, fMin, delta, boxBest);
+	// todo: pretty sure that doing `delta[i] = max(delta[i], 0)` will
+	// improve SNR. Implement & test.
 
-	assert(!videoStart("/tmp/countingTmp"));
-	for (int i = 0; i < 30; i++) {
-		assert(!videoEncodeFrame(fMin));
-	}
-	for (int i = 0; i < 30; i++) {
-		assert(!videoEncodeFrame(fMax));
-	}
+	assert(!videoStart("/tmp/countingBox"));
 
+	uint16_t *uTmp = malloc(ccameraGetFrameSize());
+	assert(uTmp);
 	uint16_t *uDelta = malloc(ccameraGetFrameSize());
+	assert(uDelta);
 	int min = delta[0];
 	int max = delta[0];
 	min = -3000; // -500 makes the down position brighter
@@ -300,16 +299,16 @@ static void initializeBox(uint16_t *fMin, uint16_t *fMax)
 		valOut *= 4000;
 		uDelta[i] = (uint16_t) valOut;
 	}
-	for (int i = 0; i < 30; i++) {
+	size_t timePerFrame = 30;
+	for (size_t i = 0; i < timePerFrame; i++) {
 		assert(!videoEncodeFrame(uDelta));
 	}
-	assert(!videoStop());
 
 	double utilBest = avgInBoxInt(delta, boxBest);
 
 	nextShrink(boxBest, true);
 	unsigned int lastShrink = 0;
-	while(lastShrink < 10) { // arbitrary
+	while(lastShrink < 20) { // arbitrary
 		lastShrink++;
 		// todo: use a slightly less greedy algorithm. Examine all four
 		// shrink directions, and choose the one that gets the best result.
@@ -320,9 +319,26 @@ static void initializeBox(uint16_t *fMin, uint16_t *fMax)
 		struct box boxNew = nextShrink(boxBest, false);
 		double utilNew = avgInBoxInt(delta, boxNew);
 
+		ccameraCopyFrame(uDelta, uTmp);
+		drawBox(uTmp, 0, boxBest);
+
+		struct box boxTmp = boxNew;
+		boxTmp.xMin++;
+		boxTmp.xMax--;
+		boxTmp.yMin++;
+		boxTmp.yMax--;
+		drawBox(uTmp, UINT16_MAX, boxTmp);
+		for (size_t i = 0; i < timePerFrame; i++) {
+			assert(!videoEncodeFrame(uTmp));
+		}
+		if (timePerFrame > 5) {
+			timePerFrame--;
+		}
+
+
 
 		double fracChange = utilNew / utilBest;
-		if (fracChange >= 1.20) {
+		if (fracChange >= 1.04) {
 			nextShrink(boxBest, true);
 			boxBest = boxNew;
 			utilBest = utilNew;
@@ -330,6 +346,14 @@ static void initializeBox(uint16_t *fMin, uint16_t *fMax)
 		}
 	}
 
+	ccameraCopyFrame(uDelta, uTmp);
+	drawBox(uTmp, 0, boxBest);
+	for (size_t i = 0; i < 30; i++) {
+		assert(!videoEncodeFrame(uTmp));
+	}
+
+
+	assert(!videoStop());
 	free(delta);
 
 	box = boxBest;
