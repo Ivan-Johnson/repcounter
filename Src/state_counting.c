@@ -276,6 +276,8 @@ static void initializeBox(uint16_t *fMin, uint16_t *fMax)
 	size_t numPixels = ccameraGetNumPixels();
 	int *delta = malloc(sizeof(int*) * numPixels);
 	assert(delta);
+	// todo: wouldn't we get better SNR by adding a `delta[i] =
+	// max(delta[i], 0)` line? after the subtraction? Test this.
 	boxSubtraction(fMax, fMin, delta, boxBest);
 
 	double utilBest = avgInBoxInt(delta, boxBest);
