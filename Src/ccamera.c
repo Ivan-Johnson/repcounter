@@ -8,6 +8,7 @@
 #include "camera.h"
 #include "ccamera.h"
 #include "helper.h"
+#include "video.h"
 
 static unsigned int sample_size;
 static unsigned int sample_delta;
@@ -62,6 +63,10 @@ int ccameraInit(struct args args)
 
 	fail = pthread_create(&background, NULL, &backgroundMain, NULL);
 	assert(!fail);
+
+	usleep(30000000);
+	ccameraDestroy();
+	exit(0);
 
 	return 0;
 }
@@ -143,6 +148,7 @@ void *backgroundMain(void *foo)
 	unsigned long long before = 0;
 	unsigned long long after = 0;
 	unsigned int dropped = 0;
+	videoStart("/tmp/rawdata");
 	while(!stopRequested) {
 		// rotate `frames` array
 		uint16_t *tmp = frames[0];
@@ -155,6 +161,7 @@ void *backgroundMain(void *foo)
 		before = getTimeInMs();
 		// this runs ~instantaneously unless it has to wait for a new frame
 		assert(!cameraGetFrame(frames[cFrames-1]));
+		assert(!videoEncodeFrame(frames[cFrames-1]));
 		after = getTimeInMs();
 
 		dropped -= 5;
@@ -173,6 +180,7 @@ void *backgroundMain(void *foo)
 		pthread_mutex_unlock(&mutRecent);
 
 	}
+	videoStop();
 
 	return NULL;
 }
